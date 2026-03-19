@@ -179,7 +179,9 @@ type LocaleMessages = {
     slogan: string;
     placeholder: string;
     button: string;
+    submitting: string;
     success: string;
+    error: string;
     version: string;
   };
   footer: {
@@ -430,7 +432,9 @@ export const messages: Record<Locale, LocaleMessages> = {
       slogan: "Isinizi buyuten radar uygulamalari",
       placeholder: "E-posta adresinizi birakin...",
       button: "Haberdar Et",
+      submitting: "Gonderiliyor",
       success: "Kaydiniz alindi. Tesekkurler!",
+      error: "Kayit sirasinda bir sorun olustu. Lutfen tekrar deneyin.",
       version: "V3.0 Intelligence Platform",
     },
     footer: {
@@ -683,7 +687,9 @@ export const messages: Record<Locale, LocaleMessages> = {
       slogan: "Radar applications that grow your business",
       placeholder: "Leave your email address...",
       button: "Notify Me",
+      submitting: "Sending",
       success: "Registration received. Thank you!",
+      error: "Something went wrong while saving your email. Please try again.",
       version: "V3.0 Intelligence Platform",
     },
     footer: {

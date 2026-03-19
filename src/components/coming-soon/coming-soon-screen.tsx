@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { getMessages } from "@/data/messages";
 import { getLocalizedPath } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import type { Locale } from "@/types/i18n";
 
 type IconProps = {
@@ -102,7 +103,7 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     return document.documentElement.dataset.theme === "light" ? "light" : "dark";
   });
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -112,13 +113,13 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
   }, [theme]);
 
   useEffect(() => {
-    if (!submitted) {
+    if (status !== "success") {
       return;
     }
 
-    const timer = window.setTimeout(() => setSubmitted(false), 5000);
+    const timer = window.setTimeout(() => setStatus("idle"), 5000);
     return () => window.clearTimeout(timer);
-  }, [submitted]);
+  }, [status]);
 
   const isDark = theme === "dark";
 
@@ -134,20 +135,48 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     [isDark],
   );
 
-  function handleNotify(event: FormEvent<HTMLFormElement>) {
+  async function handleNotify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim()) {
       return;
     }
 
-    setSubmitted(true);
-    setEmail("");
+    setStatus("submitting");
+
+    try {
+      const response = await fetch("/api/coming-soon-signups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          locale,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Signup request failed");
+      }
+
+      setStatus("success");
+      setEmail("");
+    } catch {
+      setStatus("error");
+    }
   }
 
   return (
-    <div className={isDark ? "dark" : undefined}>
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 dark:bg-[#010103] dark:text-white dark:selection:bg-white/10">
+    <div>
+      <div
+        className={cn(
+          "relative flex min-h-screen flex-col overflow-hidden font-sans transition-colors duration-700",
+          isDark
+            ? "bg-[#010103] text-white selection:bg-white/10"
+            : "bg-zinc-50 text-zinc-900 selection:bg-zinc-200",
+        )}
+      >
         <style>{`
           @keyframes iss-flyover {
             0% { transform: scale(1.1) translate(1%, 1%) rotate(0deg); }
@@ -180,7 +209,12 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
           }
         `}</style>
 
-        <div className="pointer-events-none absolute inset-0 z-0 text-zinc-400 opacity-20 dark:text-white dark:opacity-40">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 z-0",
+            isDark ? "text-white opacity-40" : "text-zinc-400 opacity-20",
+          )}
+        >
           {stars.map((star) => (
             <div
               key={star.id}
@@ -201,18 +235,44 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
         <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
           <div className="yakala-coming-orbit absolute h-[140vh] w-[140vw] bg-cover bg-no-repeat" style={heroStyle} />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-50 via-transparent to-zinc-50/80 dark:from-[#010103] dark:via-transparent dark:to-[#010103]/80" />
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-50 via-transparent to-zinc-50/30 dark:from-[#010103] dark:via-transparent dark:to-[#010103]/30" />
-          <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_center,transparent_0%,#010103_100%)] opacity-80 dark:block" />
-          <div className="yakala-coming-scan absolute inset-0 z-10 h-[40vh] w-full bg-gradient-to-b from-transparent via-blue-500/5 to-transparent opacity-30 dark:via-white/5" />
+          <div
+            className={cn(
+              "absolute inset-0",
+              isDark
+                ? "bg-gradient-to-t from-[#010103] via-transparent to-[#010103]/80"
+                : "bg-gradient-to-t from-zinc-50 via-transparent to-zinc-50/80",
+            )}
+          />
+          <div
+            className={cn(
+              "absolute inset-0",
+              isDark
+                ? "bg-gradient-to-r from-[#010103] via-transparent to-[#010103]/30"
+                : "bg-gradient-to-r from-zinc-50 via-transparent to-zinc-50/30",
+            )}
+          />
+          {isDark ? (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#010103_100%)] opacity-80" />
+          ) : null}
+          <div
+            className={cn(
+              "yakala-coming-scan absolute inset-0 z-10 h-[40vh] w-full bg-gradient-to-b from-transparent to-transparent opacity-30",
+              isDark ? "via-white/5" : "via-blue-500/5",
+            )}
+          />
         </div>
 
         <Container className="relative z-50 flex items-center justify-between px-6 py-8 md:px-12">
           <div className="hidden w-24 md:block" />
 
           <div className="flex flex-col items-center">
-            <div className="mb-2 h-4 w-4 animate-pulse rounded-sm bg-zinc-900 opacity-80 shadow-xl dark:bg-white" />
-            <h2 className="text-xl font-bold uppercase leading-none tracking-[0.4em] text-zinc-900 dark:text-white">
+            <div
+              className={cn(
+                "mb-2 h-4 w-4 animate-pulse rounded-sm opacity-80 shadow-xl",
+                isDark ? "bg-white" : "bg-zinc-900",
+              )}
+            />
+            <h2 className={cn("text-xl font-bold uppercase leading-none tracking-[0.4em]", isDark ? "text-white" : "text-zinc-900")}>
               {content.logo}
             </h2>
           </div>
@@ -221,18 +281,30 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
             <button
               type="button"
               onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-              className="rounded-full border border-zinc-200 bg-white/40 p-2 text-zinc-500 backdrop-blur-md transition-all hover:scale-110 dark:border-white/5 dark:bg-white/5 dark:text-zinc-400"
+              className={cn(
+                "rounded-full border p-2 backdrop-blur-md transition-all hover:scale-110",
+                isDark
+                  ? "border-white/5 bg-white/5 text-zinc-400"
+                  : "border-zinc-200 bg-white/40 text-zinc-500",
+              )}
               aria-label={isDark ? "Light mode" : "Dark mode"}
             >
               {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
             </button>
 
-            <div className="flex rounded-full border border-zinc-200 bg-zinc-200/50 p-1 backdrop-blur-md dark:border-white/5 dark:bg-white/5">
+            <div
+              className={cn(
+                "flex rounded-full border p-1 backdrop-blur-md",
+                isDark ? "border-white/5 bg-white/5" : "border-zinc-200 bg-zinc-200/50",
+              )}
+            >
               <Link
                 href={getLocalizedPath("tr", "/")}
                 className={`rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
                   locale === "tr"
-                    ? "bg-zinc-900 text-white shadow-lg dark:bg-white dark:text-zinc-950"
+                    ? isDark
+                      ? "bg-white text-zinc-950 shadow-lg"
+                      : "bg-zinc-900 text-white shadow-lg"
                     : "text-zinc-500"
                 }`}
               >
@@ -242,7 +314,9 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                 href={getLocalizedPath("en", "/")}
                 className={`rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
                   locale === "en"
-                    ? "bg-zinc-900 text-white shadow-lg dark:bg-white dark:text-zinc-950"
+                    ? isDark
+                      ? "bg-white text-zinc-950 shadow-lg"
+                      : "bg-zinc-900 text-white shadow-lg"
                     : "text-zinc-500"
                 }`}
               >
@@ -254,22 +328,37 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
         <Container className="relative z-20 flex flex-1 flex-col items-center justify-center px-6 text-center">
           <div className="yakala-coming-text mx-auto max-w-4xl space-y-8">
-            <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-zinc-200 bg-white/50 px-4 py-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+            <div
+              className={cn(
+                "mb-4 inline-flex items-center gap-3 rounded-full border px-4 py-1.5 shadow-xl backdrop-blur-xl",
+                isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white/50",
+              )}
+            >
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]" />
-              <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-zinc-600 dark:text-white/60">
+              <span className={cn("font-mono text-[9px] uppercase tracking-[0.4em]", isDark ? "text-white/60" : "text-zinc-600")}>
                 {content.status}
               </span>
             </div>
 
-            <p className="mx-auto max-w-2xl text-xl font-light leading-relaxed tracking-[0.1em] text-zinc-800 drop-shadow-2xl md:text-3xl dark:text-white/90">
+            <p
+              className={cn(
+                "mx-auto max-w-2xl text-xl font-light leading-relaxed tracking-[0.1em] drop-shadow-2xl md:text-3xl",
+                isDark ? "text-white/90" : "text-zinc-800",
+              )}
+            >
               {content.slogan}
             </p>
 
             <div className="mx-auto max-w-lg w-full pt-12">
-              {!submitted ? (
+              {status !== "success" ? (
                 <form
                   onSubmit={handleNotify}
-                  className="flex flex-col gap-2 rounded-sm border border-zinc-200 bg-white/90 p-1.5 shadow-2xl backdrop-blur-3xl transition-all hover:border-zinc-300 dark:border-white/10 dark:bg-black/60 dark:hover:border-white/20 sm:flex-row"
+                  className={cn(
+                    "flex flex-col gap-2 rounded-sm border p-1.5 shadow-2xl backdrop-blur-3xl transition-all sm:flex-row",
+                    isDark
+                      ? "border-white/10 bg-black/60 hover:border-white/20"
+                      : "border-zinc-200 bg-white/90 hover:border-zinc-300",
+                  )}
                 >
                   <div className="flex flex-1 items-center px-4 text-zinc-400">
                     <MailIcon className="h-[18px] w-[18px] opacity-50" />
@@ -278,33 +367,47 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder={content.placeholder}
-                      className="w-full bg-transparent px-3 py-4 font-light text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white dark:placeholder:text-zinc-700"
+                      className={cn(
+                        "w-full bg-transparent px-3 py-4 font-light focus:outline-none",
+                        isDark
+                          ? "text-white placeholder:text-zinc-700"
+                          : "text-zinc-900 placeholder:text-zinc-400",
+                      )}
                       required
                     />
                   </div>
                   <button
                     type="submit"
-                    className="rounded-sm bg-zinc-900 px-10 py-4 text-xs font-bold uppercase tracking-[0.24em] text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 dark:bg-white dark:text-zinc-950"
+                    disabled={status === "submitting"}
+                    className={cn(
+                      "rounded-sm px-10 py-4 text-xs font-bold uppercase tracking-[0.24em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-wait disabled:opacity-70",
+                      isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
+                    )}
                   >
-                    {content.button}
+                    {status === "submitting" ? content.submitting : content.button}
                   </button>
                 </form>
               ) : (
-                <div className="flex items-center justify-center gap-3 rounded-sm border border-emerald-500/20 bg-emerald-500/5 px-8 py-6 text-emerald-600 duration-500 animate-in fade-in zoom-in dark:text-emerald-400">
+                <div className={cn("flex items-center justify-center gap-3 rounded-sm border border-emerald-500/20 bg-emerald-500/5 px-8 py-6 duration-500 animate-in fade-in zoom-in", isDark ? "text-emerald-400" : "text-emerald-600")}>
                   <CheckCircleIcon className="h-6 w-6" />
                   <span className="font-medium tracking-wide">{content.success}</span>
                 </div>
               )}
+              {status === "error" ? (
+                <p className={cn("mt-4 text-sm", isDark ? "text-red-300" : "text-red-600")}>
+                  {content.error}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex justify-center pt-20 opacity-20">
-              <div className="h-px w-12 bg-zinc-900 dark:bg-white" />
+              <div className={cn("h-px w-12", isDark ? "bg-white" : "bg-zinc-900")} />
             </div>
           </div>
         </Container>
 
         <div className="pointer-events-none absolute bottom-10 left-1/2 z-20 -translate-x-1/2 opacity-10 transition-opacity hover:opacity-40">
-          <p className="whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.8em] text-zinc-600 dark:text-white">
+          <p className={cn("whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.8em]", isDark ? "text-white" : "text-zinc-600")}>
             {content.version}
           </p>
         </div>
