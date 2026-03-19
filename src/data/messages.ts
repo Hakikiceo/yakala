@@ -173,6 +173,13 @@ type LocaleMessages = {
     termsTitle: string;
     description: string;
   };
+  comingSoonPage: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    contactCta: string;
+    availability: string;
+  };
   footer: {
     description: string;
     legal: string;
@@ -414,6 +421,14 @@ export const messages: Record<Locale, LocaleMessages> = {
       termsTitle: "Kullanim Kosullari",
       description:
         "Bu sayfa, yasal metinler gelene kadar yer tutucu olarak kullanilir ve sonradan kolayca gercek icerikle degistirilebilir.",
+    },
+    comingSoonPage: {
+      eyebrow: "Gecici yayin modu",
+      title: "YAKALA yakinda yayinda",
+      description:
+        "Kurumsal izleme ve radar ekosistemimizi son hazirliklarla yayina aliyoruz. Cok yakinda burada olacagiz.",
+      contactCta: "Iletisime Gec",
+      availability: "Kurumsal lansman hazirligi suruyor",
     },
     footer: {
       description:
@@ -658,6 +673,14 @@ export const messages: Record<Locale, LocaleMessages> = {
       termsTitle: "Terms of Use",
       description:
         "This page acts as a placeholder until legal copy is available and can be replaced cleanly later.",
+    },
+    comingSoonPage: {
+      eyebrow: "Temporary launch mode",
+      title: "YAKALA is launching soon",
+      description:
+        "We are finalizing the last steps before launching our institutional monitoring and radar ecosystem. We will be here very soon.",
+      contactCta: "Get in Touch",
+      availability: "Institutional launch preparation in progress",
     },
     footer: {
       description:
