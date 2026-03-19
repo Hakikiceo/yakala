@@ -174,11 +174,13 @@ type LocaleMessages = {
     description: string;
   };
   comingSoonPage: {
-    eyebrow: string;
-    title: string;
-    description: string;
-    contactCta: string;
-    availability: string;
+    status: string;
+    logo: string;
+    slogan: string;
+    placeholder: string;
+    button: string;
+    success: string;
+    version: string;
   };
   footer: {
     description: string;
@@ -423,12 +425,13 @@ export const messages: Record<Locale, LocaleMessages> = {
         "Bu sayfa, yasal metinler gelene kadar yer tutucu olarak kullanilir ve sonradan kolayca gercek icerikle degistirilebilir.",
     },
     comingSoonPage: {
-      eyebrow: "Gecici yayin modu",
-      title: "YAKALA yakinda yayinda",
-      description:
-        "Kurumsal izleme ve radar ekosistemimizi son hazirliklarla yayina aliyoruz. Cok yakinda burada olacagiz.",
-      contactCta: "Iletisime Gec",
-      availability: "Kurumsal lansman hazirligi suruyor",
+      status: "Sistem Hazirlaniyor // V3.0",
+      logo: "YAKALA",
+      slogan: "Isinizi buyuten radar uygulamalari",
+      placeholder: "E-posta adresinizi birakin...",
+      button: "Haberdar Et",
+      success: "Kaydiniz alindi. Tesekkurler!",
+      version: "V3.0 Intelligence Platform",
     },
     footer: {
       description:
@@ -675,12 +678,13 @@ export const messages: Record<Locale, LocaleMessages> = {
         "This page acts as a placeholder until legal copy is available and can be replaced cleanly later.",
     },
     comingSoonPage: {
-      eyebrow: "Temporary launch mode",
-      title: "YAKALA is launching soon",
-      description:
-        "We are finalizing the last steps before launching our institutional monitoring and radar ecosystem. We will be here very soon.",
-      contactCta: "Get in Touch",
-      availability: "Institutional launch preparation in progress",
+      status: "System Preparing // V3.0",
+      logo: "YAKALA",
+      slogan: "Radar applications that grow your business",
+      placeholder: "Leave your email address...",
+      button: "Notify Me",
+      success: "Registration received. Thank you!",
+      version: "V3.0 Intelligence Platform",
     },
     footer: {
       description:
