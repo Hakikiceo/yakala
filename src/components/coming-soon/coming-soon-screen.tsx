@@ -10,13 +10,11 @@ const cardCopy = {
   tr: {
     platform: "Platform",
     ecosystem: "Radar ekosistemi",
-    contact: "Iletisim",
     location: "Konum",
   },
   en: {
     platform: "Platform",
     ecosystem: "Radar ecosystem",
-    contact: "Contact",
     location: "Location",
   },
 } as const;
@@ -91,7 +89,7 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
             </div>
           </div>
 
-          <div className="mt-16 grid gap-5 md:grid-cols-3">
+          <div className="mt-16 grid gap-5 md:grid-cols-2">
             <div className="rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
               <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--color-subtle)]">
                 {labels.platform}
@@ -99,12 +97,6 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
               <div className="mt-5 text-3xl font-light tracking-[-0.05em] text-[var(--color-text)]">
                 {labels.ecosystem}
               </div>
-            </div>
-            <div className="rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-              <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--color-subtle)]">
-                {labels.contact}
-              </div>
-              <div className="mt-5 text-lg font-light text-[var(--color-text)]">{siteConfig.email}</div>
             </div>
             <div className="rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl">
               <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--color-subtle)]">
@@ -119,7 +111,6 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
         <div className="flex flex-col items-start justify-between gap-4 border-t border-[var(--color-border)] pt-6 text-xs uppercase tracking-[0.22em] text-[var(--color-subtle)] md:flex-row md:items-center">
           <span>{siteConfig.name} © 2026</span>
-          <span>{siteConfig.phone}</span>
         </div>
       </Container>
     </main>
