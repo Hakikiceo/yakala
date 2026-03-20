@@ -7,9 +7,6 @@ import type { Locale } from "@/types/i18n";
 type GoogleCallbackClientProps = {
   locale: Locale;
 };
-type SessionPayload = {
-  appAccess?: unknown;
-};
 
 const content = {
   tr: {
@@ -62,26 +59,8 @@ export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
           return;
         }
 
-        const payload = (await response.json().catch(() => null)) as SessionPayload | null;
-        const rawAppAccess = payload?.appAccess;
-        const appAccess = Array.isArray(rawAppAccess)
-          ? rawAppAccess.filter((item): item is string => typeof item === "string")
-          : [];
-
-        if (appAccess.includes("ihaleradar")) {
-          await fetch("/api/ihale/session", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ token }),
-          }).catch(() => null);
-
-          window.location.assign(locale === "en" ? "/en/ihale/app" : "/ihale/app");
-          return;
-        }
-
-        window.location.assign(locale === "en" ? "/en" : "/");
+        await response.json().catch(() => null);
+        window.location.assign(locale === "en" ? "/en/apps" : "/apps");
       } catch {
         if (active) {
           setError(true);

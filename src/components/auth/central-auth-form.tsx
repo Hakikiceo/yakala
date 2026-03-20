@@ -25,9 +25,6 @@ type CentralAuthFormProps = {
 
 type FormState = "idle" | "submitting" | "error" | "success";
 type NotifyChannel = "email" | "whatsapp" | "telegram";
-type SessionPayload = {
-  appAccess?: unknown;
-};
 
 type AuthCopy = {
   title: string;
@@ -189,12 +186,8 @@ export function CentralAuthForm({
     return `/api/auth/google/start?${params.toString()}`;
   }, [locale]);
 
-  function resolvePostLoginPath(localeValue: Locale, appAccess: string[]) {
-    if (appAccess.includes("ihaleradar")) {
-      return localeValue === "en" ? "/en/ihale/app" : "/ihale/app";
-    }
-
-    return localeValue === "en" ? "/en" : "/";
+  function resolvePostLoginPath(localeValue: Locale) {
+    return localeValue === "en" ? "/en/apps" : "/apps";
   }
 
   async function handleCentralSessionWithToken(token: string) {
@@ -210,23 +203,8 @@ export function CentralAuthForm({
       throw new Error("CENTRAL_SESSION_FAILED");
     }
 
-    const payload = (await response.json().catch(() => null)) as SessionPayload | null;
-    const rawAppAccess = payload?.appAccess;
-    const appAccess = Array.isArray(rawAppAccess)
-      ? rawAppAccess.filter((item): item is string => typeof item === "string")
-      : [];
-
-    if (appAccess.includes("ihaleradar")) {
-      await fetch("/api/ihale/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token }),
-      }).catch(() => null);
-    }
-
-    window.location.assign(resolvePostLoginPath(locale, appAccess));
+    await response.json().catch(() => null);
+    window.location.assign(resolvePostLoginPath(locale));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
