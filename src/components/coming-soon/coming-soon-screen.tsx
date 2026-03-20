@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { getMessages } from "@/data/messages";
 import { getLocalizedPath } from "@/lib/i18n";
+import { hasPendingAccess } from "@/lib/pending-access";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/types/i18n";
 
@@ -104,8 +105,13 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
   });
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [pendingAccess, setPendingAccess] = useState(false);
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
+
+  useEffect(() => {
+    setPendingAccess(hasPendingAccess());
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -425,37 +431,54 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                 )}
               >
                 <h3 className={cn("text-sm uppercase tracking-[0.2em]", isDark ? "text-white/80" : "text-zinc-700")}>
-                  {content.earlyAccessTitle}
+                  {pendingAccess ? content.pendingTitle : content.earlyAccessTitle}
                 </h3>
                 <p className={cn("mt-3 text-sm leading-6", isDark ? "text-zinc-300" : "text-zinc-600")}>
-                  {content.earlyAccessDescription}
+                  {pendingAccess ? content.pendingDescription : content.earlyAccessDescription}
                 </p>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <Link
-                    href={registerHref}
-                    className={cn(
-                      "inline-flex items-center justify-center rounded-sm px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
-                      isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
-                    )}
-                    style={{
-                      color: earlyAccessPrimaryTextColor,
-                      WebkitTextFillColor: earlyAccessPrimaryTextColor,
-                    }}
-                  >
-                    {content.earlyAccessRegister}
-                  </Link>
-                  <Link
-                    href={loginHref}
-                    className={cn(
-                      "inline-flex items-center justify-center rounded-sm border px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
-                      isDark
-                        ? "border-white/20 bg-transparent text-zinc-200"
-                        : "border-zinc-300 bg-transparent text-zinc-700",
-                    )}
-                  >
-                    {content.earlyAccessLogin}
-                  </Link>
-                </div>
+                {pendingAccess ? (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      disabled
+                      className={cn(
+                        "inline-flex w-full cursor-not-allowed items-center justify-center rounded-sm border px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] opacity-80",
+                        isDark
+                          ? "border-white/20 bg-white/10 text-zinc-200"
+                          : "border-zinc-300 bg-zinc-100 text-zinc-700",
+                      )}
+                    >
+                      {content.pendingButton}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Link
+                      href={registerHref}
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-sm px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
+                        isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
+                      )}
+                      style={{
+                        color: earlyAccessPrimaryTextColor,
+                        WebkitTextFillColor: earlyAccessPrimaryTextColor,
+                      }}
+                    >
+                      {content.earlyAccessRegister}
+                    </Link>
+                    <Link
+                      href={loginHref}
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-sm border px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
+                        isDark
+                          ? "border-white/20 bg-transparent text-zinc-200"
+                          : "border-zinc-300 bg-transparent text-zinc-700",
+                      )}
+                    >
+                      {content.earlyAccessLogin}
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 

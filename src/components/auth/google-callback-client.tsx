@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { getLocalizedPath } from "@/lib/i18n";
+import { isPendingAccessMessage, markPendingAccess } from "@/lib/pending-access";
 import type { Locale } from "@/types/i18n";
 
 type GoogleCallbackClientProps = {
@@ -53,6 +55,13 @@ export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
         });
 
         if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { message?: unknown } | null;
+          const message = typeof payload?.message === "string" ? payload.message : null;
+          if (isPendingAccessMessage(message)) {
+            markPendingAccess();
+            window.location.assign(getLocalizedPath(locale, "/"));
+            return;
+          }
           if (active) {
             setError(true);
           }

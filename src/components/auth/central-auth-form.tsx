@@ -12,6 +12,7 @@ import {
   type AuthMode,
 } from "@/lib/central-auth";
 import { getLocalizedPath } from "@/lib/i18n";
+import { isPendingAccessMessage, markPendingAccess } from "@/lib/pending-access";
 import type { Locale } from "@/types/i18n";
 
 type CentralAuthFormProps = {
@@ -257,7 +258,13 @@ export function CentralAuthForm({
       const json = (await response.json().catch(() => null)) as unknown;
 
       if (!response.ok) {
-        setErrorMessage(readErrorMessage(json) ?? `${response.status} ${response.statusText}`);
+        const message = readErrorMessage(json) ?? `${response.status} ${response.statusText}`;
+        setErrorMessage(message);
+        if (isPendingAccessMessage(message)) {
+          markPendingAccess();
+          window.location.assign(getLocalizedPath(locale, "/"));
+          return;
+        }
         setFormState("error");
         return;
       }
@@ -265,6 +272,7 @@ export function CentralAuthForm({
       const token = extractToken(json);
 
       if (mode === "register") {
+        markPendingAccess();
         if (token && returnToParam) {
           window.location.assign(buildReturnToWithToken(returnToParam, token));
           return;
@@ -307,6 +315,11 @@ export function CentralAuthForm({
       await handleCentralSessionWithToken(token);
     } catch (error) {
       if (error instanceof Error && error.message && error.message !== "CENTRAL_SESSION_FAILED") {
+        if (isPendingAccessMessage(error.message)) {
+          markPendingAccess();
+          window.location.assign(getLocalizedPath(locale, "/"));
+          return;
+        }
         setErrorMessage(error.message);
       } else {
         setErrorMessage(copy.networkError);

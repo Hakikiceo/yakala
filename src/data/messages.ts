@@ -181,6 +181,9 @@ type LocaleMessages = {
     earlyAccessDescription: string;
     earlyAccessRegister: string;
     earlyAccessLogin: string;
+    pendingTitle: string;
+    pendingDescription: string;
+    pendingButton: string;
     placeholder: string;
     button: string;
     submitting: string;
@@ -439,6 +442,10 @@ export const messages: Record<Locale, LocaleMessages> = {
         "Urunlerimize erken erisim talep etmek icin hesabinizi hemen olusturun.",
       earlyAccessRegister: "Kayit Ol",
       earlyAccessLogin: "Giris Yap",
+      pendingTitle: "Onay bekleniyor",
+      pendingDescription:
+        "Kaydiniz alindi. Erisim talebinizin admin onayi bekleniyor. Onaylandiginda secilen kanal uzerinden bilgilendirileceksiniz.",
+      pendingButton: "Onay Bekleniyor",
       placeholder: "E-posta adresinizi birakin...",
       button: "Haberdar Et",
       submitting: "Gonderiliyor",
@@ -699,6 +706,10 @@ export const messages: Record<Locale, LocaleMessages> = {
         "Create your account now to request early access to our products.",
       earlyAccessRegister: "Register",
       earlyAccessLogin: "Sign In",
+      pendingTitle: "Approval pending",
+      pendingDescription:
+        "Your registration has been received. Your access request is waiting for admin approval. You will be notified through your selected channel.",
+      pendingButton: "Approval Pending",
       placeholder: "Leave your email address...",
       button: "Notify Me",
       submitting: "Sending",
