@@ -12,12 +12,13 @@ function asText(value: unknown) {
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !anonKey || !serviceRoleKey) {
     return null;
   }
 
-  return { url: url.replace(/\/$/, ""), anonKey };
+  return { url: url.replace(/\/$/, ""), anonKey, serviceRoleKey };
 }
 
 function readSupabaseError(payload: unknown) {
@@ -96,17 +97,18 @@ export async function POST(request: Request) {
     return Response.json({ message: "Ad soyad, e-posta ve sifre zorunludur." }, { status: 400 });
   }
 
-  const signupResponse = await fetch(`${config.url}/auth/v1/signup`, {
+  const signupResponse = await fetch(`${config.url}/auth/v1/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: config.anonKey,
-      Authorization: `Bearer ${config.anonKey}`,
+      apikey: config.serviceRoleKey,
+      Authorization: `Bearer ${config.serviceRoleKey}`,
     },
     body: JSON.stringify({
       email,
       password,
-      data: { name: fullName, fullName },
+      email_confirm: true,
+      user_metadata: { name: fullName, fullName },
     }),
   });
 
@@ -117,17 +119,6 @@ export async function POST(request: Request) {
       { message: readSupabaseError(signupPayload) ?? "Kayit islemi basarisiz." },
       { status: signupResponse.status },
     );
-  }
-
-  const directToken =
-    signupPayload &&
-    typeof signupPayload === "object" &&
-    typeof (signupPayload as Record<string, unknown>).access_token === "string"
-      ? ((signupPayload as Record<string, unknown>).access_token as string)
-      : null;
-
-  if (directToken) {
-    return Response.json({ token: directToken });
   }
 
   const tokenResult = await fetchPasswordToken(config.url, config.anonKey, email, password);
