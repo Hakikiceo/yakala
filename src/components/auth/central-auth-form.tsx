@@ -37,6 +37,7 @@ type AuthCopy = {
   switchHref: string;
   invalidReturnTo: string;
   missingReturnTo: string;
+  invalidApp: string;
   tokenError: string;
   missingApiUrl: string;
   appLabel: string;
@@ -62,6 +63,7 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
       switchHref: isLogin ? "/register" : "/login",
       invalidReturnTo: "return_to adresi allowlist disinda.",
       missingReturnTo: "return_to parametresi gerekli.",
+      invalidApp: "app parametresi gecersiz. Sadece app=ihaleradar desteklenir.",
       tokenError: "Token alinamadi. API yanitini kontrol edin.",
       missingApiUrl: "IHALERADAR_API_BASE_URL tanimli degil.",
       appLabel: "Hedef uygulama",
@@ -86,6 +88,7 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
     switchHref: isLogin ? "/register" : "/login",
     invalidReturnTo: "The return_to address is not in the allowlist.",
     missingReturnTo: "The return_to parameter is required.",
+    invalidApp: "Invalid app parameter. Only app=ihaleradar is supported.",
     tokenError: "Token was not returned by API.",
     missingApiUrl: "IHALERADAR_API_BASE_URL is not configured.",
     appLabel: "Target app",
@@ -136,6 +139,11 @@ export function CentralAuthForm({
 
     if (!returnToParam) {
       setErrorMessage(copy.missingReturnTo);
+      return;
+    }
+
+    if (targetApp !== "ihaleradar") {
+      setErrorMessage(copy.invalidApp);
       return;
     }
 

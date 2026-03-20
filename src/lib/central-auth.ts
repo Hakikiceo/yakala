@@ -10,7 +10,15 @@ export function parseAllowedReturnTo(raw: string | undefined) {
   return raw
     .split(",")
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((item) => {
+      try {
+        return new URL(item).origin;
+      } catch {
+        return null;
+      }
+    })
+    .filter((value): value is string => Boolean(value));
 }
 
 function toUrl(value: string) {
@@ -21,14 +29,6 @@ function toUrl(value: string) {
   }
 }
 
-function normalizePathname(pathname: string) {
-  if (pathname === "/") {
-    return "/";
-  }
-
-  return pathname.replace(/\/+$/, "");
-}
-
 export function isAllowedReturnTo(returnTo: string, allowedList: string[]) {
   const targetUrl = toUrl(returnTo);
 
@@ -36,26 +36,7 @@ export function isAllowedReturnTo(returnTo: string, allowedList: string[]) {
     return false;
   }
 
-  return allowedList.some((entry) => {
-    const allowedUrl = toUrl(entry);
-
-    if (!allowedUrl) {
-      return false;
-    }
-
-    if (allowedUrl.origin !== targetUrl.origin) {
-      return false;
-    }
-
-    const allowedPath = normalizePathname(allowedUrl.pathname);
-    const targetPath = normalizePathname(targetUrl.pathname);
-
-    if (allowedPath === "/") {
-      return true;
-    }
-
-    return targetPath === allowedPath || targetPath.startsWith(`${allowedPath}/`);
-  });
+  return allowedList.includes(targetUrl.origin);
 }
 
 export function resolveAuthApp(app: string | undefined): AuthApp {
