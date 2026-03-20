@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { IhaleAppShell } from "@/components/ihale/ihale-app-shell";
+import { resolveUserAccessByToken } from "@/lib/app-access";
 import { IHALE_SESSION_COOKIE } from "@/lib/ihale-session";
 import { buildStaticPageMetadata } from "@/lib/metadata";
 
@@ -15,10 +16,20 @@ export const metadata: Metadata = buildStaticPageMetadata({
 
 export default async function IhaleAppPage() {
   const cookieStore = await cookies();
-  const hasSession = Boolean(cookieStore.get(IHALE_SESSION_COOKIE)?.value);
+  const token = cookieStore.get(IHALE_SESSION_COOKIE)?.value;
 
-  if (!hasSession) {
+  if (!token) {
     redirect("/ihale/login");
+  }
+
+  const access = await resolveUserAccessByToken(token, "ihaleradar");
+
+  if (!access.ok) {
+    redirect("/ihale/login");
+  }
+
+  if (!access.hasAccess) {
+    redirect("/ihale/no-access");
   }
 
   return <IhaleAppShell locale="tr" />;

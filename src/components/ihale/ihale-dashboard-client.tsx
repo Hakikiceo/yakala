@@ -24,6 +24,7 @@ const content = {
     stateSaving: "Oturum kaydediliyor",
     stateMissing: "Token bulunamadi",
     stateError: "Oturum acma hatasi",
+    noAccess: "Ihale Radar erisim yetkiniz bulunmuyor.",
     tokenLabel: "Token ozeti",
     tokenHidden: "Guvenlik nedeniyle tam token gosterilmiyor.",
     actionsTitle: "Hizli islemler",
@@ -43,6 +44,7 @@ const content = {
     stateSaving: "Saving session",
     stateMissing: "No token found",
     stateError: "Session error",
+    noAccess: "You do not have access permission for Ihale Radar.",
     tokenLabel: "Token summary",
     tokenHidden: "Full token is hidden for security reasons.",
     actionsTitle: "Quick actions",
@@ -64,9 +66,11 @@ function maskToken(token: string) {
 export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardClientProps) {
   const t = content[locale];
   const [hasServerSession, setHasServerSession] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   const [persistState, setPersistState] = useState<PersistState>(
     tokenFromQuery ? "saving" : "idle",
   );
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -83,9 +87,12 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
           });
 
           if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as { message?: string } | null;
             if (active) {
               setPersistState("error");
               setHasServerSession(false);
+              setHasAccess(false);
+              setServerMessage(payload?.message ?? null);
             }
             return;
           }
@@ -93,6 +100,8 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
           if (active) {
             setPersistState("saved");
             setHasServerSession(true);
+            setHasAccess(true);
+            setServerMessage(null);
           }
 
           const url = new URL(window.location.href);
@@ -110,13 +119,19 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
 
       try {
         const response = await fetch("/api/ihale/session", { method: "GET", cache: "no-store" });
-        const payload = (await response.json().catch(() => null)) as { hasSession?: boolean } | null;
+        const payload = (await response.json().catch(() => null)) as
+          | { hasSession?: boolean; hasAccess?: boolean; message?: string }
+          | null;
         if (active) {
           setHasServerSession(Boolean(payload?.hasSession));
+          setHasAccess(Boolean(payload?.hasAccess));
+          setServerMessage(payload?.message ?? null);
         }
       } catch {
         if (active) {
           setHasServerSession(false);
+          setHasAccess(false);
+          setServerMessage(null);
         }
       }
     }
@@ -141,12 +156,13 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
       return t.stateTokenReceived;
     }
 
-    if (hasServerSession) {
+    if (hasServerSession && hasAccess) {
       return t.stateSessionPresent;
     }
 
     return t.stateMissing;
   }, [
+    hasAccess,
     hasServerSession,
     persistState,
     t.stateError,
@@ -162,6 +178,7 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const appHref = locale === "en" ? "/en/ihale/app" : "/ihale/app";
+  const noAccessHref = locale === "en" ? "/en/ihale/no-access" : "/ihale/no-access";
 
   async function handleLogout() {
     await fetch("/api/ihale/session", { method: "DELETE" }).catch(() => null);
@@ -188,11 +205,17 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
             </article>
           </div>
 
+          {!hasAccess && (persistState === "error" || hasServerSession === false) ? (
+            <p className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+              {serverMessage ?? t.noAccess}
+            </p>
+          ) : null}
+
           <div className="mt-10 border-t border-[var(--color-border)] pt-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.actionsTitle}</p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={appHref}
+                href={hasAccess ? appHref : noAccessHref}
                 className="yakala-primary-action inline-flex items-center justify-center rounded-sm px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02]"
               >
                 {t.openApp}

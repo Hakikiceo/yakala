@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { name: fullName, fullName },
+      user_metadata: { name: fullName, fullName, app_access: ["ihaleradar"] },
     }),
   });
 

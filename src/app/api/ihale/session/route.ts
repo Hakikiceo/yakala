@@ -1,63 +1,42 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { resolveUserAccessByToken } from "@/lib/app-access";
 import { IHALE_SESSION_COOKIE, IHALE_SESSION_MAX_AGE_SECONDS } from "@/lib/ihale-session";
-
-function getSupabaseConfig() {
-  const url = process.env.SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    return null;
-  }
-
-  return { url: url.replace(/\/$/, ""), anonKey };
-}
+const APP_KEY = "ihaleradar";
 
 function asToken(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-async function isValidSupabaseAccessToken({
-  url,
-  anonKey,
-  token,
-}: {
-  url: string;
-  anonKey: string;
-  token: string;
-}) {
-  const response = await fetch(`${url}/auth/v1/user`, {
-    method: "GET",
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  });
-
-  return response.ok;
 }
 
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get(IHALE_SESSION_COOKIE)?.value;
 
+  if (!token) {
+    return NextResponse.json({
+      hasSession: false,
+      hasAccess: false,
+    });
+  }
+
+  const access = await resolveUserAccessByToken(token, APP_KEY);
+
+  if (!access.ok) {
+    return NextResponse.json({
+      hasSession: false,
+      hasAccess: false,
+      message: access.message,
+    });
+  }
+
   return NextResponse.json({
-    hasSession: Boolean(token),
+    hasSession: true,
+    hasAccess: access.hasAccess,
   });
 }
 
 export async function POST(request: Request) {
-  const config = getSupabaseConfig();
-
-  if (!config) {
-    return NextResponse.json(
-      { message: "Auth servis degiskenleri eksik." },
-      { status: 500 },
-    );
-  }
-
   const body = (await request.json().catch(() => null)) as { token?: unknown } | null;
   const token = asToken(body?.token);
 
@@ -65,14 +44,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Token zorunludur." }, { status: 400 });
   }
 
-  const isValidToken = await isValidSupabaseAccessToken({
-    url: config.url,
-    anonKey: config.anonKey,
-    token,
-  });
+  const access = await resolveUserAccessByToken(token, APP_KEY);
 
-  if (!isValidToken) {
-    return NextResponse.json({ message: "Gecersiz token." }, { status: 401 });
+  if (!access.ok) {
+    return NextResponse.json({ message: access.message }, { status: access.status });
+  }
+
+  if (!access.hasAccess) {
+    return NextResponse.json(
+      { message: "Ihale Radar erisim yetkiniz bulunmuyor." },
+      { status: 403 },
+    );
   }
 
   const response = NextResponse.json({ ok: true });
