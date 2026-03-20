@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import {
   buildReturnToWithToken,
+  readErrorCode,
   extractToken,
   isAllowedReturnTo,
   readErrorMessage,
@@ -26,6 +27,8 @@ type CentralAuthFormProps = {
 
 type FormState = "idle" | "submitting" | "error" | "success";
 type NotifyChannel = "email" | "whatsapp" | "telegram";
+const registerCooldownMs = 60_000;
+const registerCooldownStorageKey = "yakala-register-cooldown-until";
 
 type AuthCopy = {
   title: string;
@@ -45,6 +48,8 @@ type AuthCopy = {
   missingApiUrl: string;
   passwordMismatch: string;
   networkError: string;
+  registerCooldown: string;
+  autoGoogleRedirect: string;
   registerPendingSuccess: string;
   googleCta: string;
   notifyPreferenceLabel: string;
@@ -78,6 +83,9 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
       missingApiUrl: "IHALERADAR_API_BASE_URL tanimli degil.",
       passwordMismatch: "Sifreler ayni olmali.",
       networkError: "Baglanti hatasi olustu.",
+      registerCooldown:
+        "Kisa surede tekrar kayit denemesi algilandi. Lutfen 1 dakika bekleyin veya Google ile devam edin.",
+      autoGoogleRedirect: "Sizi otomatik olarak Google ile devam et akisina yonlendiriyoruz...",
       registerPendingSuccess:
         "Kaydiniz alindi. Erisim talebiniz onaylandiginda secilen kanal uzerinden bilgilendirileceksiniz.",
       googleCta: "Google ile Devam Et",
@@ -119,6 +127,9 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
     missingApiUrl: "IHALERADAR_API_BASE_URL is not configured.",
     passwordMismatch: "Passwords must match.",
     networkError: "A network error occurred.",
+    registerCooldown:
+      "Repeated registration attempts detected. Please wait 1 minute or continue with Google.",
+    autoGoogleRedirect: "Redirecting you to Continue with Google...",
     registerPendingSuccess:
       "Your registration has been received. We will notify you via your selected channel once access is approved.",
     googleCta: "Continue with Google",
@@ -167,6 +178,7 @@ export function CentralAuthForm({
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isAutoRedirectingToGoogle, setIsAutoRedirectingToGoogle] = useState(false);
 
   const switchHref = useMemo(() => {
     const url = new URL(getLocalizedPath(locale, copy.switchHref), "https://yakala.io");
@@ -220,6 +232,21 @@ export function CentralAuthForm({
       return;
     }
 
+    if (mode === "register") {
+      try {
+        const cooldownUntil = Number.parseInt(
+          window.localStorage.getItem(registerCooldownStorageKey) ?? "",
+          10,
+        );
+        const isCooldownActive = Number.isFinite(cooldownUntil) && Date.now() < cooldownUntil;
+
+        if (isCooldownActive) {
+          setErrorMessage(copy.registerCooldown);
+          return;
+        }
+      } catch {}
+    }
+
     if (mode === "register" && password !== passwordAgain) {
       setErrorMessage(copy.passwordMismatch);
       return;
@@ -259,7 +286,25 @@ export function CentralAuthForm({
 
       if (!response.ok) {
         const message = readErrorMessage(json) ?? `${response.status} ${response.statusText}`;
+        const code = readErrorCode(json);
         setErrorMessage(message);
+
+        if (mode === "register" && (code === "RATE_LIMIT_EMAIL" || code === "REGISTER_COOLDOWN")) {
+          try {
+            window.localStorage.setItem(
+              registerCooldownStorageKey,
+              String(Date.now() + registerCooldownMs),
+            );
+          } catch {}
+
+          setSuccessMessage(copy.autoGoogleRedirect);
+          setIsAutoRedirectingToGoogle(true);
+          window.setTimeout(() => {
+            window.location.assign(googleStartHref);
+          }, 1200);
+          return;
+        }
+
         if (isPendingAccessMessage(message)) {
           markPendingAccess();
           window.location.assign(getLocalizedPath(locale, "/"));
@@ -433,10 +478,10 @@ export function CentralAuthForm({
 
             <button
               type="submit"
-              disabled={formState === "submitting"}
+              disabled={formState === "submitting" || isAutoRedirectingToGoogle}
               className="yakala-primary-action mt-2 inline-flex items-center justify-center rounded-sm px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02] disabled:cursor-wait disabled:opacity-70"
             >
-              {formState === "submitting" ? copy.loading : copy.submit}
+              {formState === "submitting" || isAutoRedirectingToGoogle ? copy.loading : copy.submit}
             </button>
           </form>
 

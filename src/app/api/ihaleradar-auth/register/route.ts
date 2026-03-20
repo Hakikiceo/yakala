@@ -9,6 +9,9 @@ type RegisterBody = {
   notifyTarget?: unknown;
 };
 
+const registerAttemptWindowMs = 60_000;
+const registerAttemptByEmail = new Map<string, number>();
+
 function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -57,6 +60,79 @@ function mapRegisterErrorMessage(rawMessage: string | null, status: number) {
   return rawMessage ?? "Kayit islemi basarisiz.";
 }
 
+function canAttemptRegister(email: string) {
+  const now = Date.now();
+  const lastAttempt = registerAttemptByEmail.get(email) ?? 0;
+
+  if (now - lastAttempt < registerAttemptWindowMs) {
+    return false;
+  }
+
+  registerAttemptByEmail.set(email, now);
+
+  if (registerAttemptByEmail.size > 1000) {
+    // Basit hafiza korumasi
+    const oldestEntries = Array.from(registerAttemptByEmail.entries())
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 200);
+
+    for (const [key] of oldestEntries) {
+      registerAttemptByEmail.delete(key);
+    }
+  }
+
+  return true;
+}
+
+async function emailAlreadyExists({
+  url,
+  serviceRoleKey,
+  email,
+}: {
+  url: string;
+  serviceRoleKey: string;
+  email: string;
+}) {
+  const perPage = 200;
+
+  for (let page = 1; page <= 20; page += 1) {
+    const response = await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=${perPage}`, {
+      method: "GET",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const payload = (await response.json().catch(() => null)) as { users?: unknown } | null;
+    const users = Array.isArray(payload?.users) ? payload.users : [];
+
+    const found = users.some((user) => {
+      if (!user || typeof user !== "object") {
+        return false;
+      }
+
+      const candidate = (user as Record<string, unknown>).email;
+      return typeof candidate === "string" && candidate.toLowerCase() === email;
+    });
+
+    if (found) {
+      return true;
+    }
+
+    if (users.length < perPage) {
+      break;
+    }
+  }
+
+  return false;
+}
+
 function normalizeNotifyChannel(value: unknown) {
   if (value === "whatsapp" || value === "telegram" || value === "email") {
     return value;
@@ -100,6 +176,35 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!canAttemptRegister(email)) {
+    return Response.json(
+      {
+        code: "REGISTER_COOLDOWN",
+        message:
+          "Kisa surede tekrar kayit denemesi algilandi. Lutfen 1 dakika bekleyin veya Google ile devam edin.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (config.serviceRoleKey) {
+    const exists = await emailAlreadyExists({
+      url: config.url,
+      serviceRoleKey: config.serviceRoleKey,
+      email,
+    }).catch(() => false);
+
+    if (exists) {
+      return Response.json(
+        {
+          code: "EMAIL_EXISTS",
+          message: "Bu e-posta ile zaten kayit var. Lutfen giris yapin.",
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   const signupResponse = await fetch(`${config.url}/auth/v1/signup`, {
     method: "POST",
     headers: {
@@ -125,8 +230,15 @@ export async function POST(request: Request) {
 
   if (!signupResponse.ok) {
     const rawError = readSupabaseError(signupPayload);
+    const mapped = mapRegisterErrorMessage(rawError, signupResponse.status);
+    const normalized = (rawError ?? "").toLowerCase();
+    const code =
+      signupResponse.status === 429 || normalized.includes("rate limit")
+        ? "RATE_LIMIT_EMAIL"
+        : undefined;
+
     return Response.json(
-      { message: mapRegisterErrorMessage(rawError, signupResponse.status) },
+      { message: mapped, ...(code ? { code } : {}) },
       { status: signupResponse.status },
     );
   }

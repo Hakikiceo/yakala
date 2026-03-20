@@ -127,3 +127,12 @@ export function readErrorMessage(payload: unknown) {
 
   return null;
 }
+
+export function readErrorCode(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const root = payload as Record<string, unknown>;
+  return typeof root.code === "string" && root.code.length > 0 ? root.code : null;
+}
