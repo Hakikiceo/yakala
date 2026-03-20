@@ -1,3 +1,5 @@
+import { incrementEarlyAccessCount } from "@/lib/early-access-counter";
+
 type RegisterBody = {
   name?: unknown;
   fullName?: unknown;
@@ -105,6 +107,8 @@ export async function POST(request: Request) {
       { status: signupResponse.status },
     );
   }
+
+  await incrementEarlyAccessCount().catch(() => null);
 
   return Response.json({
     ok: true,

@@ -177,6 +177,7 @@ type LocaleMessages = {
     status: string;
     logo: string;
     slogan: string;
+    earlyAccessCountLabel: string;
     earlyAccessTitle: string;
     earlyAccessDescription: string;
     earlyAccessRegister: string;
@@ -437,6 +438,7 @@ export const messages: Record<Locale, LocaleMessages> = {
       status: "Sistem Hazirlaniyor // V3.0",
       logo: "YAKALA",
       slogan: "Takip Etme. Yakala!",
+      earlyAccessCountLabel: "On erisim talebi",
       earlyAccessTitle: "Erken erisim istegi",
       earlyAccessDescription:
         "Urunlerimize erken erisim talep etmek icin hesabinizi hemen olusturun.",
@@ -701,6 +703,7 @@ export const messages: Record<Locale, LocaleMessages> = {
       status: "System Preparing // V3.0",
       logo: "YAKALA",
       slogan: "Don’t just track it. Yakala!",
+      earlyAccessCountLabel: "Early access requests",
       earlyAccessTitle: "Early access request",
       earlyAccessDescription:
         "Create your account now to request early access to our products.",

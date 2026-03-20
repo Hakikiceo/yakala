@@ -78,6 +78,7 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     return document.documentElement.dataset.theme === "light" ? "light" : "dark";
   });
   const [pendingAccess, setPendingAccess] = useState(false);
+  const [earlyAccessCount, setEarlyAccessCount] = useState<number | null>(null);
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
   const privacyHref = locale === "en" ? "/en/legal/privacy" : "/legal/privacy";
@@ -85,6 +86,36 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     setPendingAccess(hasPendingAccess());
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadStats() {
+      try {
+        const response = await fetch("/api/coming-soon-stats", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json().catch(() => null)) as { count?: unknown } | null;
+        const count = typeof payload?.count === "number" ? payload.count : null;
+
+        if (active && count !== null && Number.isFinite(count)) {
+          setEarlyAccessCount(Math.max(0, Math.floor(count)));
+        }
+      } catch {}
+    }
+
+    void loadStats();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -96,6 +127,10 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
   const isDark = theme === "dark";
   const earlyAccessPrimaryTextColor = isDark ? "#09090b" : "#ffffff";
+  const formattedEarlyAccessCount =
+    earlyAccessCount === null
+      ? "..."
+      : new Intl.NumberFormat(locale === "en" ? "en-US" : "tr-TR").format(earlyAccessCount);
 
   const heroStyle = useMemo(
     () => ({
@@ -304,6 +339,10 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                   isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white/70",
                 )}
               >
+                <p className={cn("mb-3 text-xs uppercase tracking-[0.18em]", isDark ? "text-zinc-300" : "text-zinc-600")}>
+                  {content.earlyAccessCountLabel}:{" "}
+                  <span className={cn("font-semibold", isDark ? "text-white" : "text-zinc-900")}>{formattedEarlyAccessCount}</span>
+                </p>
                 <h3 className={cn("text-sm uppercase tracking-[0.2em]", isDark ? "text-white/80" : "text-zinc-700")}>
                   {pendingAccess ? content.pendingTitle : content.earlyAccessTitle}
                 </h3>
