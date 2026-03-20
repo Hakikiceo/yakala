@@ -6,6 +6,7 @@ import { ComingSoonScreen } from "@/components/coming-soon/coming-soon-screen";
 import { SiteShell } from "@/components/layout/site-shell";
 import "@/app/globals.css";
 import { isComingSoonModeEnabled } from "@/data/site";
+import { resolveUserAccessProfileByToken } from "@/lib/app-access";
 import { CENTRAL_SESSION_COOKIE } from "@/lib/central-session";
 import { siteMetadataBase } from "@/lib/metadata";
 
@@ -27,8 +28,15 @@ const comingSoonThemeInitScript = `document.documentElement.dataset.theme = "dar
 
 export default async function TurkishLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
-  const hasCentralSession = Boolean(cookieStore.get(CENTRAL_SESSION_COOKIE)?.value);
-  const showComingSoon = isComingSoonModeEnabled && !hasCentralSession;
+  const token = cookieStore.get(CENTRAL_SESSION_COOKIE)?.value;
+  let hasApprovedAccess = false;
+
+  if (token) {
+    const profile = await resolveUserAccessProfileByToken(token);
+    hasApprovedAccess = profile.ok && profile.appAccess.length > 0;
+  }
+
+  const showComingSoon = isComingSoonModeEnabled && !hasApprovedAccess;
 
   return (
     <html

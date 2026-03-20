@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isAdminSessionActive } from "@/lib/admin-panel";
+import { notifyAccessApproved } from "@/lib/access-approval-notifier";
 import { listAdminUsers, updateUserAccessMetadata } from "@/lib/supabase-admin-users";
 
 const IHALE_APP_KEY = "ihaleradar";
@@ -75,5 +76,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: result.message }, { status: result.status });
   }
 
-  return NextResponse.json({ ok: true });
+  if (action === "approve" && "user" in result && result.user) {
+    const notificationResult = await notifyAccessApproved({
+      appKey,
+      email: result.user.email,
+      notifyChannel: result.user.notifyChannel,
+      notifyTarget: result.user.notifyTarget,
+    });
+
+    if (!notificationResult.ok) {
+      return NextResponse.json({
+        ok: true,
+        notification: {
+          ok: false,
+          reason: notificationResult.reason,
+        },
+      });
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    notification: {
+      ok: true,
+    },
+  });
 }

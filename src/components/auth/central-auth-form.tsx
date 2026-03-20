@@ -199,11 +199,13 @@ export function CentralAuthForm({
       body: JSON.stringify({ token }),
     });
 
+    const payload = (await response.json().catch(() => null)) as { message?: unknown } | null;
+
     if (!response.ok) {
-      throw new Error("CENTRAL_SESSION_FAILED");
+      const message = typeof payload?.message === "string" ? payload.message : "CENTRAL_SESSION_FAILED";
+      throw new Error(message);
     }
 
-    await response.json().catch(() => null);
     window.location.assign(resolvePostLoginPath(locale));
   }
 
@@ -303,8 +305,12 @@ export function CentralAuthForm({
       }
 
       await handleCentralSessionWithToken(token);
-    } catch {
-      setErrorMessage(copy.networkError);
+    } catch (error) {
+      if (error instanceof Error && error.message && error.message !== "CENTRAL_SESSION_FAILED") {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage(copy.networkError);
+      }
       setFormState("error");
     }
   }

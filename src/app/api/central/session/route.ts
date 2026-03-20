@@ -37,8 +37,10 @@ export async function GET() {
     );
   }
 
+  const hasApprovedAccess = profile.appAccess.length > 0;
+
   return NextResponse.json({
-    hasSession: true,
+    hasSession: hasApprovedAccess,
     appAccess: profile.appAccess,
     email: profile.email,
   });
@@ -56,6 +58,13 @@ export async function POST(request: Request) {
 
   if (!profile.ok) {
     return NextResponse.json({ message: profile.message }, { status: profile.status });
+  }
+
+  if (profile.appAccess.length === 0) {
+    return NextResponse.json(
+      { message: "Erisim talebiniz henuz onaylanmadi." },
+      { status: 403 },
+    );
   }
 
   const response = NextResponse.json({

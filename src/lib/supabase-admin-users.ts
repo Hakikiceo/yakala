@@ -181,5 +181,6 @@ export async function updateUserAccessMetadata({
     ok: true as const,
     status: 200,
     message: "",
+    user,
   };
 }
