@@ -4,6 +4,7 @@ type RegisterBody = {
   email?: unknown;
   password?: unknown;
   notifyChannel?: unknown;
+  notifyTarget?: unknown;
 };
 
 function asText(value: unknown) {
@@ -62,9 +63,17 @@ export async function POST(request: Request) {
   const password = asText(body.password);
   const fullName = asText(body.fullName || body.name);
   const notifyChannel = normalizeNotifyChannel(body.notifyChannel);
+  const notifyTarget = asText(body.notifyTarget);
 
   if (!email || !password || !fullName) {
     return Response.json({ message: "Ad soyad, e-posta ve sifre zorunludur." }, { status: 400 });
+  }
+
+  if (notifyChannel !== "email" && !notifyTarget) {
+    return Response.json(
+      { message: "Secilen bildirim kanali icin iletisim bilgisi zorunludur." },
+      { status: 400 },
+    );
   }
 
   const signupResponse = await fetch(`${config.url}/auth/v1/signup`, {
@@ -83,6 +92,7 @@ export async function POST(request: Request) {
         app_access: [],
         access_requests: ["ihaleradar"],
         notify_channel: notifyChannel,
+        notify_target: notifyTarget || null,
       },
     }),
   });

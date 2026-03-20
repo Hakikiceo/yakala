@@ -51,6 +51,9 @@ type AuthCopy = {
   googleCta: string;
   notifyPreferenceLabel: string;
   notifyOptions: Record<NotifyChannel, string>;
+  notifyTargetLabel: string;
+  notifyTargetPlaceholder: Record<NotifyChannel, string>;
+  notifyTargetRequired: string;
 };
 
 function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
@@ -86,6 +89,13 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
         whatsapp: "WhatsApp",
         telegram: "Telegram",
       },
+      notifyTargetLabel: "Iletisim bilgisi",
+      notifyTargetPlaceholder: {
+        email: "",
+        whatsapp: "+90 5xx xxx xx xx",
+        telegram: "@kullaniciadi",
+      },
+      notifyTargetRequired: "Secilen bildirim kanali icin iletisim bilgisi zorunlu.",
     };
   }
 
@@ -120,6 +130,13 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
       whatsapp: "WhatsApp",
       telegram: "Telegram",
     },
+    notifyTargetLabel: "Contact detail",
+    notifyTargetPlaceholder: {
+      email: "",
+      whatsapp: "+90 5xx xxx xx xx",
+      telegram: "@username",
+    },
+    notifyTargetRequired: "Contact detail is required for the selected notification channel.",
   };
 }
 
@@ -148,6 +165,7 @@ export function CentralAuthForm({
   const [passwordAgain, setPasswordAgain] = useState("");
   const [fullName, setFullName] = useState("");
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>("email");
+  const [notifyTarget, setNotifyTarget] = useState("");
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -216,6 +234,11 @@ export function CentralAuthForm({
       return;
     }
 
+    if (mode === "register" && notifyChannel !== "email" && notifyTarget.trim().length === 0) {
+      setErrorMessage(copy.notifyTargetRequired);
+      return;
+    }
+
     setFormState("submitting");
 
     try {
@@ -230,6 +253,7 @@ export function CentralAuthForm({
               name: fullName,
               fullName,
               notifyChannel,
+              notifyTarget: notifyTarget.trim(),
             };
 
       const response = await fetch(endpoint, {
@@ -383,6 +407,20 @@ export function CentralAuthForm({
                     ))}
                   </div>
                 </fieldset>
+
+                {notifyChannel !== "email" ? (
+                  <label className="grid gap-2 text-sm">
+                    <span className="text-[var(--color-subtle)]">{copy.notifyTargetLabel}</span>
+                    <input
+                      type="text"
+                      value={notifyTarget}
+                      onChange={(event) => setNotifyTarget(event.target.value)}
+                      placeholder={copy.notifyTargetPlaceholder[notifyChannel]}
+                      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-4 py-3 text-[var(--color-control-text)] outline-none transition focus:border-[var(--color-border-strong)]"
+                      required
+                    />
+                  </label>
+                ) : null}
               </>
             ) : null}
 

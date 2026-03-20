@@ -10,6 +10,8 @@ type AccessUser = {
   createdAt: string | null;
   appAccess: string[];
   accessRequests: string[];
+  notifyChannel: string | null;
+  notifyTarget: string | null;
 };
 
 type AccessResponse = {
@@ -41,6 +43,8 @@ const content = {
     notConfigured: "Admin panel anahtari sunucuda ayarlanmamis.",
     unauthorized: "Admin anahtari hatali.",
     genericError: "Islem basarisiz oldu.",
+    notifyLabel: "Bildirim",
+    notifyMissing: "Bilgi girilmemis",
   },
   en: {
     title: "Central Access Approval Panel",
@@ -59,6 +63,8 @@ const content = {
     notConfigured: "Admin panel key is not configured on the server.",
     unauthorized: "Invalid admin key.",
     genericError: "Operation failed.",
+    notifyLabel: "Notification",
+    notifyMissing: "Not provided",
   },
 } as const;
 
@@ -247,6 +253,10 @@ export function AdminAccessPanel({
                         <div key={user.id} className="rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-sm font-medium">{user.email ?? user.id}</p>
                           <p className="mt-1 text-xs text-[var(--color-subtle)]">{formatDate(user.createdAt)}</p>
+                          <p className="mt-1 text-xs text-[var(--color-subtle)]">
+                            {t.notifyLabel}: {user.notifyChannel ?? t.notifyMissing}
+                            {user.notifyTarget ? ` - ${user.notifyTarget}` : ""}
+                          </p>
                           <button
                             type="button"
                             onClick={() => updateAccess(user.id, "approve")}
@@ -271,6 +281,10 @@ export function AdminAccessPanel({
                         <div key={user.id} className="rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-sm font-medium">{user.email ?? user.id}</p>
                           <p className="mt-1 text-xs text-[var(--color-subtle)]">{formatDate(user.createdAt)}</p>
+                          <p className="mt-1 text-xs text-[var(--color-subtle)]">
+                            {t.notifyLabel}: {user.notifyChannel ?? t.notifyMissing}
+                            {user.notifyTarget ? ` - ${user.notifyTarget}` : ""}
+                          </p>
                           <button
                             type="button"
                             onClick={() => updateAccess(user.id, "revoke")}

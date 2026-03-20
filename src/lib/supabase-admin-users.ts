@@ -9,6 +9,9 @@ export type AdminUserAccessRecord = {
   createdAt: string | null;
   appAccess: string[];
   accessRequests: string[];
+  notifyChannel: string | null;
+  notifyTarget: string | null;
+  rawMetadata: Record<string, unknown>;
 };
 
 function getSupabaseConfig(): SupabaseConfig | null {
@@ -60,6 +63,9 @@ function normalizeUser(user: Record<string, unknown>): AdminUserAccessRecord {
     createdAt: typeof user.created_at === "string" ? user.created_at : null,
     appAccess: unique(asStringList(metadata.app_access)),
     accessRequests: unique(asStringList(metadata.access_requests)),
+    notifyChannel: typeof metadata.notify_channel === "string" ? metadata.notify_channel : null,
+    notifyTarget: typeof metadata.notify_target === "string" ? metadata.notify_target : null,
+    rawMetadata: metadata,
   };
 }
 
@@ -160,6 +166,7 @@ export async function updateUserAccessMetadata({
     method: "PUT",
     body: JSON.stringify({
       user_metadata: {
+        ...user.rawMetadata,
         app_access: nextAppAccess,
         access_requests: nextAccessRequests,
       },
