@@ -52,8 +52,8 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
     return {
       title: isLogin ? "Merkezi Giris" : "Merkezi Kayit",
       description: isLogin
-        ? "Ihale Radar kimlik sunucusuna baglanip token handoff ile uygulamaya doneceksiniz."
-        : "Hesap olusturulduktan sonra Ihale Radar tokeniyle uygulamaya yonlendirilirsiniz.",
+        ? "Ihale Radar kimlik servisine baglanip token handoff ile uygulamaya doneceksiniz."
+        : "Hesap olusturulduktan sonra token handoff ile Ihale Radar uygulamasina yonlendirilirsiniz.",
       email: "E-posta",
       password: "Sifre",
       fullName: "Ad Soyad",
@@ -76,9 +76,9 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
 
   return {
     title: isLogin ? "Central Login" : "Central Register",
-    description: isLogin
-      ? "You will authenticate against the Ihale Radar identity API, then return with token handoff."
-      : "After registration, you will be redirected back with an Ihale Radar token handoff.",
+      description: isLogin
+      ? "You will authenticate against the Ihale Radar identity service, then return with token handoff."
+      : "After registration, you will be redirected back with token handoff for Ihale Radar.",
     email: "Email",
     password: "Password",
     fullName: "Full Name",
