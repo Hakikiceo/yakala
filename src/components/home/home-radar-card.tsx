@@ -14,7 +14,7 @@ export function HomeRadarCard({
 }) {
   const href =
     product.slug === "ihale-radar"
-      ? getLocalizedPath(locale, "/ihale/app")
+      ? "/api/apps/ihale/launch"
       : getLocalizedPath(locale, `/products/${product.slug}`);
 
   return (

@@ -19,7 +19,7 @@ export function ProductCard({
   const dictionary = getMessages(locale);
   const href =
     product.slug === "ihale-radar"
-      ? getLocalizedPath(locale, "/ihale/app")
+      ? "/api/apps/ihale/launch"
       : getLocalizedPath(locale, `/products/${product.slug}`);
   const status = dictionary.common.status[product.status];
   const intent = dictionary.common.intent[getIntentForProductStatus(product.status)];
