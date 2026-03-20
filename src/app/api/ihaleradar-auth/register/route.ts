@@ -35,6 +35,28 @@ function readSupabaseError(payload: unknown) {
   return typeof candidate === "string" ? candidate : null;
 }
 
+function mapRegisterErrorMessage(rawMessage: string | null, status: number) {
+  const normalized = (rawMessage ?? "").toLowerCase();
+
+  if (status === 429 || normalized.includes("rate limit")) {
+    return "E-posta gonderim limiti gecici olarak doldu. Lutfen kisa bir sure sonra tekrar deneyin veya Google ile devam edin.";
+  }
+
+  if (normalized.includes("already registered")) {
+    return "Bu e-posta ile zaten kayit var. Lutfen giris yapin.";
+  }
+
+  if (normalized.includes("invalid email")) {
+    return "E-posta formati gecersiz.";
+  }
+
+  if (normalized.includes("password")) {
+    return "Sifre kurali saglanmiyor. Daha guclu bir sifre deneyin.";
+  }
+
+  return rawMessage ?? "Kayit islemi basarisiz.";
+}
+
 function normalizeNotifyChannel(value: unknown) {
   if (value === "whatsapp" || value === "telegram" || value === "email") {
     return value;
@@ -102,8 +124,9 @@ export async function POST(request: Request) {
   const signupPayload = (await signupResponse.json().catch(() => null)) as unknown;
 
   if (!signupResponse.ok) {
+    const rawError = readSupabaseError(signupPayload);
     return Response.json(
-      { message: readSupabaseError(signupPayload) ?? "Kayit islemi basarisiz." },
+      { message: mapRegisterErrorMessage(rawError, signupResponse.status) },
       { status: signupResponse.status },
     );
   }
