@@ -60,7 +60,7 @@ export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
         }
 
         await response.json().catch(() => null);
-        window.location.assign(locale === "en" ? "/en/apps" : "/apps");
+        window.location.assign(locale === "en" ? "/en" : "/");
       } catch {
         if (active) {
           setError(true);

@@ -1,7 +1,6 @@
 type SupabaseConfig = {
   url: string;
   anonKey: string;
-  serviceRoleKey: string;
 };
 
 export type AppAccessResult =
@@ -15,16 +14,14 @@ export type UserAccessProfileResult =
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !anonKey || !serviceRoleKey) {
+  if (!url || !anonKey) {
     return null;
   }
 
   return {
     url: url.replace(/\/$/, ""),
     anonKey,
-    serviceRoleKey,
   };
 }
 

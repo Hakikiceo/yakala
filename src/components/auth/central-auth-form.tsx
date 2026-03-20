@@ -187,7 +187,7 @@ export function CentralAuthForm({
   }, [locale]);
 
   function resolvePostLoginPath(localeValue: Locale) {
-    return localeValue === "en" ? "/en/apps" : "/apps";
+    return localeValue === "en" ? "/en" : "/";
   }
 
   async function handleCentralSessionWithToken(token: string) {
