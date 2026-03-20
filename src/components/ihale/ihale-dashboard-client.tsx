@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import type { Locale } from "@/types/i18n";
@@ -10,7 +10,7 @@ type IhaleDashboardClientProps = {
   tokenFromQuery?: string;
 };
 
-const SESSION_KEY = "yakala_ihale_token";
+type PersistState = "idle" | "saving" | "saved" | "error";
 
 const content = {
   tr: {
@@ -21,12 +21,16 @@ const content = {
     stateLabel: "Oturum durumu",
     stateTokenReceived: "Token alindi",
     stateSessionPresent: "Aktif oturum mevcut",
+    stateSaving: "Oturum kaydediliyor",
     stateMissing: "Token bulunamadi",
+    stateError: "Oturum acma hatasi",
     tokenLabel: "Token ozeti",
     tokenHidden: "Guvenlik nedeniyle tam token gosterilmiyor.",
     actionsTitle: "Hizli islemler",
+    openApp: "Uygulamaya Gec",
     loginAgain: "Tekrar Giris",
     register: "Yeni Kayit",
+    logout: "Cikis Yap",
   },
   en: {
     badge: "Ihale Radar // Dashboard Access",
@@ -36,12 +40,16 @@ const content = {
     stateLabel: "Session status",
     stateTokenReceived: "Token received",
     stateSessionPresent: "Existing session found",
+    stateSaving: "Saving session",
     stateMissing: "No token found",
+    stateError: "Session error",
     tokenLabel: "Token summary",
     tokenHidden: "Full token is hidden for security reasons.",
     actionsTitle: "Quick actions",
+    openApp: "Open App",
     loginAgain: "Sign In Again",
     register: "Create Account",
+    logout: "Sign Out",
   },
 } as const;
 
@@ -55,23 +63,110 @@ function maskToken(token: string) {
 
 export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardClientProps) {
   const t = content[locale];
+  const [hasServerSession, setHasServerSession] = useState(false);
+  const [persistState, setPersistState] = useState<PersistState>(
+    tokenFromQuery ? "saving" : "idle",
+  );
 
   useEffect(() => {
-    if (tokenFromQuery) {
-      window.sessionStorage.setItem(SESSION_KEY, tokenFromQuery);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("token");
-      window.history.replaceState({}, "", url.toString());
+    let active = true;
+
+    async function syncSession() {
+      if (tokenFromQuery) {
+        try {
+          const response = await fetch("/api/ihale/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token: tokenFromQuery }),
+          });
+
+          if (!response.ok) {
+            if (active) {
+              setPersistState("error");
+              setHasServerSession(false);
+            }
+            return;
+          }
+
+          if (active) {
+            setPersistState("saved");
+            setHasServerSession(true);
+          }
+
+          const url = new URL(window.location.href);
+          url.searchParams.delete("token");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        } catch {
+          if (active) {
+            setPersistState("error");
+            setHasServerSession(false);
+          }
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch("/api/ihale/session", { method: "GET", cache: "no-store" });
+        const payload = (await response.json().catch(() => null)) as { hasSession?: boolean } | null;
+        if (active) {
+          setHasServerSession(Boolean(payload?.hasSession));
+        }
+      } catch {
+        if (active) {
+          setHasServerSession(false);
+        }
+      }
     }
+
+    void syncSession();
+
+    return () => {
+      active = false;
+    };
   }, [tokenFromQuery]);
 
-  const statusText = tokenFromQuery ? t.stateTokenReceived : t.stateMissing;
+  const statusText = useMemo(() => {
+    if (persistState === "saving") {
+      return t.stateSaving;
+    }
+
+    if (persistState === "error") {
+      return t.stateError;
+    }
+
+    if (tokenFromQuery && persistState === "saved") {
+      return t.stateTokenReceived;
+    }
+
+    if (hasServerSession) {
+      return t.stateSessionPresent;
+    }
+
+    return t.stateMissing;
+  }, [
+    hasServerSession,
+    persistState,
+    t.stateError,
+    t.stateMissing,
+    t.stateSaving,
+    t.stateSessionPresent,
+    t.stateTokenReceived,
+    tokenFromQuery,
+  ]);
+
   const tokenPreview = tokenFromQuery ? maskToken(tokenFromQuery) : null;
 
-  const loginHref =
-    locale === "en" ? "/en/ihale/login" : "/ihale/login";
-  const registerHref =
-    locale === "en" ? "/en/ihale/register" : "/ihale/register";
+  const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
+  const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
+  const appHref = locale === "en" ? "/en/ihale/app" : "/ihale/app";
+
+  async function handleLogout() {
+    await fetch("/api/ihale/session", { method: "DELETE" }).catch(() => null);
+    window.location.assign(locale === "en" ? "/en/ihale" : "/ihale");
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -97,8 +192,14 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.actionsTitle}</p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={loginHref}
+                href={appHref}
                 className="yakala-primary-action inline-flex items-center justify-center rounded-sm px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02]"
+              >
+                {t.openApp}
+              </Link>
+              <Link
+                href={loginHref}
+                className="yakala-secondary-action inline-flex items-center justify-center rounded-sm border px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02]"
               >
                 {t.loginAgain}
               </Link>
@@ -108,6 +209,13 @@ export function IhaleDashboardClient({ locale, tokenFromQuery }: IhaleDashboardC
               >
                 {t.register}
               </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="yakala-muted-action inline-flex items-center justify-center rounded-sm border border-[var(--color-border)] bg-transparent px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02]"
+              >
+                {t.logout}
+              </button>
             </div>
           </div>
         </section>
