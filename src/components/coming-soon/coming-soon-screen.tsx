@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, FormEvent } from "react";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
@@ -14,15 +14,6 @@ import type { Locale } from "@/types/i18n";
 type IconProps = {
   className?: string;
 };
-
-function MailIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d="M4 6h16v12H4z" />
-      <path d="m4 8 8 6 8-6" />
-    </svg>
-  );
-}
 
 function SunIcon({ className }: IconProps) {
   return (
@@ -64,23 +55,6 @@ function MoonIcon({ className }: IconProps) {
   );
 }
 
-function CheckCircleIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8.5 12.5 2.3 2.3 4.9-5.3" />
-    </svg>
-  );
-}
-
 const earthImage =
   "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=100&w=3500&auto=format&fit=crop";
 
@@ -103,8 +77,6 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
     return document.documentElement.dataset.theme === "light" ? "light" : "dark";
   });
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [pendingAccess, setPendingAccess] = useState(false);
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
@@ -122,15 +94,6 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     } catch {}
   }, [theme]);
 
-  useEffect(() => {
-    if (status !== "success") {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setStatus("idle"), 5000);
-    return () => window.clearTimeout(timer);
-  }, [status]);
-
   const isDark = theme === "dark";
   const earlyAccessPrimaryTextColor = isDark ? "#09090b" : "#ffffff";
 
@@ -145,38 +108,6 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     }),
     [isDark],
   );
-
-  async function handleNotify(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!email.trim()) {
-      return;
-    }
-
-    setStatus("submitting");
-
-    try {
-      const response = await fetch("/api/coming-soon-signups", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          locale,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Signup request failed");
-      }
-
-      setStatus("success");
-      setEmail("");
-    } catch {
-      setStatus("error");
-    }
-  }
 
   return (
     <div>
@@ -367,58 +298,9 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
             </p>
 
             <div className="mx-auto max-w-lg w-full pt-12">
-              {status !== "success" ? (
-                <form
-                  onSubmit={handleNotify}
-                  className={cn(
-                    "flex flex-col gap-2 rounded-sm border p-1.5 shadow-2xl backdrop-blur-3xl transition-all sm:flex-row",
-                    isDark
-                      ? "border-white/10 bg-black/60 hover:border-white/20"
-                      : "border-zinc-200 bg-white/90 hover:border-zinc-300",
-                  )}
-                >
-                  <div className="flex flex-1 items-center px-4 text-zinc-400">
-                    <MailIcon className="h-[18px] w-[18px] opacity-50" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder={content.placeholder}
-                      className={cn(
-                        "w-full bg-transparent px-3 py-4 font-light focus:outline-none",
-                        isDark
-                          ? "text-white placeholder:text-zinc-700"
-                          : "text-zinc-900 placeholder:text-zinc-400",
-                      )}
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={status === "submitting"}
-                    className={cn(
-                      "rounded-sm px-10 py-4 text-xs font-bold uppercase tracking-[0.24em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-wait disabled:opacity-70",
-                      isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
-                    )}
-                  >
-                    {status === "submitting" ? content.submitting : content.button}
-                  </button>
-                </form>
-              ) : (
-                <div className={cn("flex items-center justify-center gap-3 rounded-sm border border-emerald-500/20 bg-emerald-500/5 px-8 py-6 duration-500 animate-in fade-in zoom-in", isDark ? "text-emerald-400" : "text-emerald-600")}>
-                  <CheckCircleIcon className="h-6 w-6" />
-                  <span className="font-medium tracking-wide">{content.success}</span>
-                </div>
-              )}
-              {status === "error" ? (
-                <p className={cn("mt-4 text-sm", isDark ? "text-red-300" : "text-red-600")}>
-                  {content.error}
-                </p>
-              ) : null}
-
               <div
                 className={cn(
-                  "mt-8 rounded-2xl border p-5 text-left",
+                  "rounded-2xl border p-5 text-left",
                   isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white/70",
                 )}
               >
