@@ -23,13 +23,15 @@ type CentralAuthFormProps = {
   returnToParam?: string;
 };
 
-type FormState = "idle" | "submitting" | "error";
+type FormState = "idle" | "submitting" | "error" | "success";
+type NotifyChannel = "email" | "whatsapp" | "telegram";
 
 type AuthCopy = {
   title: string;
   description: string;
   email: string;
   password: string;
+  passwordAgain: string;
   fullName: string;
   submit: string;
   loading: string;
@@ -40,9 +42,12 @@ type AuthCopy = {
   invalidApp: string;
   tokenError: string;
   missingApiUrl: string;
-  appLabel: string;
-  appValue: string;
-  returnToLabel: string;
+  passwordMismatch: string;
+  networkError: string;
+  registerPendingSuccess: string;
+  googleCta: string;
+  notifyPreferenceLabel: string;
+  notifyOptions: Record<NotifyChannel, string>;
 };
 
 function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
@@ -52,10 +57,11 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
     return {
       title: isLogin ? "Merkezi Giris" : "Merkezi Kayit",
       description: isLogin
-        ? "Ihale Radar kimlik servisine baglanip token handoff ile uygulamaya doneceksiniz."
-        : "Hesap olusturulduktan sonra token handoff ile Ihale Radar uygulamasina yonlendirilirsiniz.",
+        ? "Merkezi hesabinizla giris yapin ve onayli uygulamalariniza erisin."
+        : "Hesabinizi olusturun. Erisim talebiniz admin onayindan sonra aktif edilir.",
       email: "E-posta",
       password: "Sifre",
+      passwordAgain: "Sifre (Tekrar)",
       fullName: "Ad Soyad",
       submit: isLogin ? "Giris Yap" : "Kayit Ol",
       loading: isLogin ? "Giris yapiliyor" : "Kayit olusturuluyor",
@@ -66,23 +72,32 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
       invalidApp: "app parametresi gecersiz. Sadece app=ihaleradar desteklenir.",
       tokenError: "Token alinamadi. API yanitini kontrol edin.",
       missingApiUrl: "IHALERADAR_API_BASE_URL tanimli degil.",
-      appLabel: "Hedef uygulama",
-      appValue: "Ihale Radar",
-      returnToLabel: "Donus adresi",
+      passwordMismatch: "Sifreler ayni olmali.",
+      networkError: "Baglanti hatasi olustu.",
+      registerPendingSuccess:
+        "Kaydiniz alindi. Erisim talebiniz onaylandiginda secilen kanal uzerinden bilgilendirileceksiniz.",
+      googleCta: "Google ile Devam Et",
+      notifyPreferenceLabel: "Onay bildirimi tercihi",
+      notifyOptions: {
+        email: "Email",
+        whatsapp: "WhatsApp",
+        telegram: "Telegram",
+      },
     };
   }
 
   const isLogin = mode === "login";
 
   return {
-    title: isLogin ? "Central Login" : "Central Register",
-      description: isLogin
-      ? "You will authenticate against the Ihale Radar identity service, then return with token handoff."
-      : "After registration, you will be redirected back with token handoff for Ihale Radar.",
+    title: isLogin ? "Central Sign In" : "Central Register",
+    description: isLogin
+      ? "Sign in with your central account and access your approved applications."
+      : "Create your account and continue after access approval is granted.",
     email: "Email",
     password: "Password",
+    passwordAgain: "Password (Confirm)",
     fullName: "Full Name",
-    submit: isLogin ? "Sign In" : "Create Account",
+    submit: isLogin ? "Sign In" : "Register",
     loading: isLogin ? "Signing in" : "Creating account",
     switchLabel: isLogin ? "No account yet? Register" : "Already have an account? Sign in",
     switchHref: isLogin ? "/register" : "/login",
@@ -91,9 +106,17 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
     invalidApp: "Invalid app parameter. Only app=ihaleradar is supported.",
     tokenError: "Token was not returned by API.",
     missingApiUrl: "IHALERADAR_API_BASE_URL is not configured.",
-    appLabel: "Target app",
-    appValue: "Ihale Radar",
-    returnToLabel: "Return URL",
+    passwordMismatch: "Passwords must match.",
+    networkError: "A network error occurred.",
+    registerPendingSuccess:
+      "Your registration has been received. We will notify you via your selected channel once access is approved.",
+    googleCta: "Continue with Google",
+    notifyPreferenceLabel: "Approval notification preference",
+    notifyOptions: {
+      email: "Email",
+      whatsapp: "WhatsApp",
+      telegram: "Telegram",
+    },
   };
 }
 
@@ -119,9 +142,12 @@ export function CentralAuthForm({
   const targetApp = resolveAuthApp(appParam);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordAgain, setPasswordAgain] = useState("");
   const [fullName, setFullName] = useState("");
+  const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>("email");
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const switchHref = useMemo(() => {
     const url = new URL(getLocalizedPath(locale, copy.switchHref), "https://yakala.io");
@@ -134,31 +160,42 @@ export function CentralAuthForm({
       url.searchParams.set("return_to", returnToParam);
     }
 
-    const localizedPrefix = locale === "en" ? "/en" : "";
-    return `${localizedPrefix}${url.pathname}${url.search}`;
+    return `${url.pathname}${url.search}`;
   }, [appParam, copy.switchHref, locale, returnToParam]);
+
+  const googleStartHref = useMemo(() => {
+    const params = new URLSearchParams({ locale });
+    return `/api/auth/google/start?${params.toString()}`;
+  }, [locale]);
+
+  async function handleCentralSessionWithToken(token: string) {
+    const response = await fetch("/api/central/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      throw new Error("CENTRAL_SESSION_FAILED");
+    }
+
+    window.location.assign(locale === "en" ? "/en/apps" : "/apps");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     if (!apiBaseUrl) {
       setErrorMessage(copy.missingApiUrl);
       return;
     }
 
-    if (!returnToParam) {
-      setErrorMessage(copy.missingReturnTo);
-      return;
-    }
-
-    if (targetApp !== "ihaleradar") {
-      setErrorMessage(copy.invalidApp);
-      return;
-    }
-
-    if (!isAllowedReturnTo(returnToParam, allowedReturnTo)) {
-      setErrorMessage(copy.invalidReturnTo);
+    if (mode === "register" && password !== passwordAgain) {
+      setErrorMessage(copy.passwordMismatch);
       return;
     }
 
@@ -169,7 +206,14 @@ export function CentralAuthForm({
       const payload =
         mode === "login"
           ? { email, password }
-          : { email, password, name: fullName, fullName };
+          : {
+              email,
+              password,
+              passwordConfirm: passwordAgain,
+              name: fullName,
+              fullName,
+              notifyChannel,
+            };
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -189,15 +233,49 @@ export function CentralAuthForm({
 
       const token = extractToken(json);
 
+      if (mode === "register") {
+        if (token && returnToParam) {
+          window.location.assign(buildReturnToWithToken(returnToParam, token));
+          return;
+        }
+
+        setFormState("success");
+        setSuccessMessage(readErrorMessage(json) ?? copy.registerPendingSuccess);
+        return;
+      }
+
       if (!token) {
         setErrorMessage(copy.tokenError);
         setFormState("error");
         return;
       }
 
-      window.location.assign(buildReturnToWithToken(returnToParam, token));
+      if (returnToParam || appParam) {
+        if (!returnToParam) {
+          setErrorMessage(copy.missingReturnTo);
+          setFormState("error");
+          return;
+        }
+
+        if (targetApp !== "ihaleradar") {
+          setErrorMessage(copy.invalidApp);
+          setFormState("error");
+          return;
+        }
+
+        if (!isAllowedReturnTo(returnToParam, allowedReturnTo)) {
+          setErrorMessage(copy.invalidReturnTo);
+          setFormState("error");
+          return;
+        }
+
+        window.location.assign(buildReturnToWithToken(returnToParam, token));
+        return;
+      }
+
+      await handleCentralSessionWithToken(token);
     } catch {
-      setErrorMessage(locale === "tr" ? "Baglanti hatasi olustu." : "A network error occurred.");
+      setErrorMessage(copy.networkError);
       setFormState("error");
     }
   }
@@ -217,22 +295,6 @@ export function CentralAuthForm({
 
           <h1 className="text-4xl font-light tracking-[-0.06em] md:text-5xl">{copy.title}</h1>
           <p className="mt-4 text-base leading-7 text-[var(--color-muted)]">{copy.description}</p>
-
-          <div className="mt-8 grid gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel-strong)] p-5 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[var(--color-subtle)]">{copy.appLabel}</span>
-              <span className="font-semibold text-[var(--color-text)]">
-                {targetApp === "ihaleradar" ? copy.appValue : appParam ?? "unknown"}
-              </span>
-            </div>
-            <div className="h-px bg-[var(--color-border)]" />
-            <div className="grid gap-1">
-              <span className="text-[var(--color-subtle)]">{copy.returnToLabel}</span>
-              <span className="break-all text-xs text-[var(--color-text)]">
-                {returnToParam ?? "-"}
-              </span>
-            </div>
-          </div>
 
           <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
             {mode === "register" ? (
@@ -270,6 +332,43 @@ export function CentralAuthForm({
               />
             </label>
 
+            {mode === "register" ? (
+              <>
+                <label className="grid gap-2 text-sm">
+                  <span className="text-[var(--color-subtle)]">{copy.passwordAgain}</span>
+                  <input
+                    type="password"
+                    value={passwordAgain}
+                    onChange={(event) => setPasswordAgain(event.target.value)}
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-4 py-3 text-[var(--color-control-text)] outline-none transition focus:border-[var(--color-border-strong)]"
+                    required
+                  />
+                </label>
+
+                <fieldset className="grid gap-2 text-sm">
+                  <legend className="text-[var(--color-subtle)]">{copy.notifyPreferenceLabel}</legend>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {(Object.keys(copy.notifyOptions) as NotifyChannel[]).map((option) => (
+                      <label
+                        key={option}
+                        className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[var(--color-control-text)]"
+                      >
+                        <input
+                          type="radio"
+                          name="notifyChannel"
+                          value={option}
+                          checked={notifyChannel === option}
+                          onChange={() => setNotifyChannel(option)}
+                          className="accent-emerald-500"
+                        />
+                        {copy.notifyOptions[option]}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </>
+            ) : null}
+
             <button
               type="submit"
               disabled={formState === "submitting"}
@@ -279,9 +378,22 @@ export function CentralAuthForm({
             </button>
           </form>
 
+          <Link
+            href={googleStartHref}
+            className="yakala-secondary-action mt-4 inline-flex w-full items-center justify-center rounded-sm border px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]"
+          >
+            {copy.googleCta}
+          </Link>
+
           {errorMessage ? (
             <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {errorMessage}
+            </p>
+          ) : null}
+
+          {successMessage ? (
+            <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+              {successMessage}
             </p>
           ) : null}
 

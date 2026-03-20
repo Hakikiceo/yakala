@@ -8,7 +8,7 @@ export const metadata: Metadata = buildStaticPageMetadata({
   locale: "en",
   path: "/login",
   title: "Central Login",
-  description: "YAKALA central login route with Ihale Radar token handoff.",
+  description: "YAKALA central account sign-in page.",
 });
 
 export default async function EnglishLoginPage({

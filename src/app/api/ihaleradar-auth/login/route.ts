@@ -3,6 +3,15 @@ type LoginBody = {
   password?: unknown;
 };
 
+type SupabaseUserPayload = {
+  email_confirmed_at?: unknown;
+  user_metadata?: unknown;
+};
+
+type SupabaseUserMetadata = {
+  app_access?: unknown;
+};
+
 function asText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -26,6 +35,27 @@ function readSupabaseError(payload: unknown) {
   const root = payload as Record<string, unknown>;
   const candidate = root.msg ?? root.error_description ?? root.message ?? root.error;
   return typeof candidate === "string" ? candidate : null;
+}
+
+function hasAnyAppAccess(metadata: SupabaseUserMetadata) {
+  const raw = metadata.app_access;
+
+  if (Array.isArray(raw)) {
+    return raw.some((value) => typeof value === "string" && value.trim().length > 0);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean).length > 0;
+  }
+
+  if (raw && typeof raw === "object") {
+    return Object.values(raw as Record<string, unknown>).some((value) => value === true);
+  }
+
+  return false;
 }
 
 export async function POST(request: Request) {
@@ -79,6 +109,44 @@ export async function POST(request: Request) {
 
   if (!token) {
     return Response.json({ message: "Token olusturulamadi." }, { status: 502 });
+  }
+
+  const userResponse = await fetch(`${config.url}/auth/v1/user`, {
+    method: "GET",
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const userPayload = (await userResponse.json().catch(() => null)) as unknown;
+
+  if (!userResponse.ok) {
+    return Response.json(
+      { message: readSupabaseError(userPayload) ?? "Kullanici profili okunamadi." },
+      { status: userResponse.status },
+    );
+  }
+
+  const user = (userPayload as SupabaseUserPayload) ?? {};
+  const metadata =
+    user.user_metadata && typeof user.user_metadata === "object"
+      ? (user.user_metadata as SupabaseUserMetadata)
+      : {};
+  const emailConfirmed = typeof user.email_confirmed_at === "string" && user.email_confirmed_at.length > 0;
+
+  if (!emailConfirmed) {
+    return Response.json(
+      { message: "E-posta dogrulamaniz tamamlanmadi. Lutfen dogrulama mailini onaylayin." },
+      { status: 403 },
+    );
+  }
+
+  if (!hasAnyAppAccess(metadata)) {
+    return Response.json(
+      { message: "Erisim talebiniz henuz onaylanmadi. Onaylandiginda bilgilendirileceksiniz." },
+      { status: 403 },
+    );
   }
 
   return Response.json({ token });
