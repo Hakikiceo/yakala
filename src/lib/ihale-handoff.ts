@@ -8,7 +8,7 @@ export async function getRequestOrigin() {
 }
 
 export function buildIhaleReturnTo(origin: string, locale: "tr" | "en") {
-  const path = locale === "en" ? "/en/ihale/dashboard" : "/ihale/dashboard";
+  const path = locale === "en" ? "/en/ihale/app" : "/ihale/app";
   return `${origin}${path}`;
 }
 

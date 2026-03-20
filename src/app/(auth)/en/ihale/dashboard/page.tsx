@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { IhaleDashboardClient } from "@/components/ihale/ihale-dashboard-client";
 import { buildStaticPageMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = buildStaticPageMetadata({
@@ -16,6 +16,8 @@ export default async function IhaleDashboardPageEn({
   searchParams: Promise<{ token?: string }>;
 }) {
   const params = await searchParams;
-
-  return <IhaleDashboardClient locale="en" tokenFromQuery={params.token} />;
+  if (params.token) {
+    redirect(`/en/ihale/app?token=${encodeURIComponent(params.token)}`);
+  }
+  redirect("/en/ihale/app");
 }

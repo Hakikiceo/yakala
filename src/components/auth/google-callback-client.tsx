@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { buildReturnToWithToken, resolveAuthApp } from "@/lib/central-auth";
 import { getLocalizedPath } from "@/lib/i18n";
 import { isPendingAccessMessage, markPendingAccess } from "@/lib/pending-access";
 import type { Locale } from "@/types/i18n";
 
 type GoogleCallbackClientProps = {
   locale: Locale;
-  appParam?: string;
-  returnToParam?: string;
 };
 
 const content = {
@@ -31,11 +28,7 @@ function readTokenFromCallbackUrl() {
   return hashParams.get("access_token") ?? queryParams.get("access_token");
 }
 
-export function GoogleCallbackClient({
-  locale,
-  appParam,
-  returnToParam,
-}: GoogleCallbackClientProps) {
+export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
   const t = content[locale];
   const [error, setError] = useState(false);
 
@@ -76,18 +69,6 @@ export function GoogleCallbackClient({
         }
 
         await response.json().catch(() => null);
-        const targetApp = resolveAuthApp(appParam);
-
-        if (targetApp === "ihaleradar") {
-          if (returnToParam) {
-            window.location.assign(buildReturnToWithToken(returnToParam, token));
-            return;
-          }
-
-          window.location.assign(locale === "en" ? "/en/ihale/app" : "/ihale/app");
-          return;
-        }
-
         window.location.assign(locale === "en" ? "/en" : "/");
       } catch {
         if (active) {
@@ -101,7 +82,7 @@ export function GoogleCallbackClient({
     return () => {
       active = false;
     };
-  }, [appParam, locale, returnToParam]);
+  }, [locale]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
