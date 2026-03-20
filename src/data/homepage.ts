@@ -8,6 +8,7 @@ type LocalizedHomeContent = {
     institution: string;
     contact: string;
     requestAccess: string;
+    logout: string;
     footerCompany: string;
     footerDescription: string;
     locations: string[];
@@ -76,6 +77,7 @@ export const homepageContent: Record<Locale, LocalizedHomeContent> = {
       institution: "Kurumsal",
       contact: "Iletisim",
       requestAccess: "Erisim Talep Et",
+      logout: "Cikis Yap",
       footerCompany: "Sirket",
       footerDescription:
         "Kapsamli veri izleme standardi. Birden fazla Radar urunuyle degisen pazar dinamiklerini tek merkezden takip edin.",
@@ -167,6 +169,7 @@ export const homepageContent: Record<Locale, LocalizedHomeContent> = {
       institution: "Institution",
       contact: "Contact",
       requestAccess: "Request Access",
+      logout: "Sign Out",
       footerCompany: "Company",
       footerDescription:
         "A comprehensive monitoring standard. Track changing market dynamics from one center across multiple Radar products.",

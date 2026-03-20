@@ -15,6 +15,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const pathname = usePathname();
   const content = getHomepageContent(locale);
   const [scrolled, setScrolled] = useState(false);
+  const [hasApprovedSession, setHasApprovedSession] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -22,6 +23,41 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkSession() {
+      try {
+        const response = await fetch("/api/central/session", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => null)) as { hasSession?: unknown } | null;
+        const hasSession = payload?.hasSession === true;
+
+        if (active) {
+          setHasApprovedSession(hasSession);
+        }
+      } catch {
+        if (active) {
+          setHasApprovedSession(false);
+        }
+      }
+    }
+
+    void checkSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    await fetch("/api/central/session", { method: "DELETE" }).catch(() => null);
+    await fetch("/api/ihale/session", { method: "DELETE" }).catch(() => null);
+    window.location.assign(getLocalizedPath(locale, "/"));
+  }
 
   const isHome = pathname === "/" || pathname === "/en";
 
@@ -84,12 +120,24 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             >
               {content.shell.contact}
             </Link>
-            <Link
-              href={getLocalizedPath(locale, "/demo")}
-              className="yakala-primary-action inline-flex rounded-sm px-3.5 py-3 text-[10px] font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02] md:px-6 md:text-[11px] md:tracking-[0.26em]"
-            >
-              {content.shell.requestAccess}
-            </Link>
+            {hasApprovedSession ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLogout();
+                }}
+                className="yakala-primary-action inline-flex rounded-sm px-3.5 py-3 text-[10px] font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02] md:px-6 md:text-[11px] md:tracking-[0.26em]"
+              >
+                {content.shell.logout}
+              </button>
+            ) : (
+              <Link
+                href={getLocalizedPath(locale, "/demo")}
+                className="yakala-primary-action inline-flex rounded-sm px-3.5 py-3 text-[10px] font-bold uppercase tracking-[0.22em] transition hover:scale-[1.02] md:px-6 md:text-[11px] md:tracking-[0.26em]"
+              >
+                {content.shell.requestAccess}
+              </Link>
+            )}
           </div>
         </div>
 
