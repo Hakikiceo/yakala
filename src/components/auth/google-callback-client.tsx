@@ -69,6 +69,14 @@ export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
           : [];
 
         if (appAccess.includes("ihaleradar")) {
+          await fetch("/api/ihale/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token }),
+          }).catch(() => null);
+
           window.location.assign(locale === "en" ? "/en/ihale/app" : "/ihale/app");
           return;
         }

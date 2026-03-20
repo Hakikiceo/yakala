@@ -216,6 +216,16 @@ export function CentralAuthForm({
       ? rawAppAccess.filter((item): item is string => typeof item === "string")
       : [];
 
+    if (appAccess.includes("ihaleradar")) {
+      await fetch("/api/ihale/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token }),
+      }).catch(() => null);
+    }
+
     window.location.assign(resolvePostLoginPath(locale, appAccess));
   }
 
