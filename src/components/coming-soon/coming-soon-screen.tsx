@@ -124,6 +124,7 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
   }, [status]);
 
   const isDark = theme === "dark";
+  const earlyAccessPrimaryTextColor = isDark ? "#09090b" : "#ffffff";
 
   const heroStyle = useMemo(
     () => ({
@@ -420,6 +421,10 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                       "inline-flex items-center justify-center rounded-sm px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
                       isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
                     )}
+                    style={{
+                      color: earlyAccessPrimaryTextColor,
+                      WebkitTextFillColor: earlyAccessPrimaryTextColor,
+                    }}
                   >
                     {content.earlyAccessRegister}
                   </Link>
