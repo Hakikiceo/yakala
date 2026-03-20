@@ -17,7 +17,10 @@ export function ProductCard({
   locale: Locale;
 }) {
   const dictionary = getMessages(locale);
-  const href = getLocalizedPath(locale, `/products/${product.slug}`);
+  const href =
+    product.slug === "ihale-radar"
+      ? getLocalizedPath(locale, "/ihale")
+      : getLocalizedPath(locale, `/products/${product.slug}`);
   const status = dictionary.common.status[product.status];
   const intent = dictionary.common.intent[getIntentForProductStatus(product.status)];
 

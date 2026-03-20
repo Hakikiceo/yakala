@@ -12,9 +12,14 @@ export function HomeRadarCard({
   product: Product;
   locale: Locale;
 }) {
+  const href =
+    product.slug === "ihale-radar"
+      ? getLocalizedPath(locale, "/ihale")
+      : getLocalizedPath(locale, `/products/${product.slug}`);
+
   return (
     <Link
-      href={getLocalizedPath(locale, `/products/${product.slug}`)}
+      href={href}
       className="group relative flex min-h-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-8 backdrop-blur-md transition-all duration-700 hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:shadow-[0_25px_80px_rgba(0,0,0,0.22)]"
     >
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-glow-1)] via-transparent to-transparent opacity-0 transition-opacity duration-1000 group-hover:opacity-100" />
