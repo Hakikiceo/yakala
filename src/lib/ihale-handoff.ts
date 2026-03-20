@@ -30,3 +30,29 @@ export function buildCentralAuthHref({
 
   return `${prefix}${authPath}?${params.toString()}`;
 }
+
+function normalizeDashboardBaseUrl(rawValue: string) {
+  const value = rawValue.trim();
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+export function buildIhaleDashboardRedirectUrl(token: string) {
+  const configuredUrl = process.env.IHALERADAR_DASHBOARD_URL ?? "";
+  const fallbackLocal = process.env.NODE_ENV === "production" ? "" : "http://localhost:3000/dashboard";
+  const base = normalizeDashboardBaseUrl(configuredUrl || fallbackLocal);
+
+  if (!base) {
+    return null;
+  }
+
+  base.searchParams.set("token", token);
+  return base.toString();
+}

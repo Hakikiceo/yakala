@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { IhaleAppShell } from "@/components/ihale/ihale-app-shell";
 import { resolveUserAccessByToken } from "@/lib/app-access";
+import { buildIhaleDashboardRedirectUrl } from "@/lib/ihale-handoff";
 import { IHALE_SESSION_COOKIE } from "@/lib/ihale-session";
 import { buildStaticPageMetadata } from "@/lib/metadata";
 
@@ -32,5 +32,11 @@ export default async function IhaleAppPageEn() {
     redirect("/en/ihale/no-access");
   }
 
-  return <IhaleAppShell locale="en" />;
+  const dashboardRedirectUrl = buildIhaleDashboardRedirectUrl(token);
+
+  if (!dashboardRedirectUrl) {
+    redirect("/en/ihale/no-access");
+  }
+
+  redirect(dashboardRedirectUrl);
 }
