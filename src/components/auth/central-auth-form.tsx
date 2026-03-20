@@ -97,6 +97,16 @@ function getCopy(locale: Locale, mode: AuthMode): AuthCopy {
   };
 }
 
+function buildAuthEndpoint(apiBaseUrl: string, mode: AuthMode) {
+  const normalizedBase = apiBaseUrl.replace(/\/+$/, "");
+
+  if (normalizedBase.endsWith("/api/ihaleradar-auth")) {
+    return `${normalizedBase}/${mode}`;
+  }
+
+  return `${normalizedBase}/auth/${mode}`;
+}
+
 export function CentralAuthForm({
   locale,
   mode,
@@ -155,7 +165,7 @@ export function CentralAuthForm({
     setFormState("submitting");
 
     try {
-      const endpoint = `${apiBaseUrl.replace(/\/$/, "")}/auth/${mode}`;
+      const endpoint = buildAuthEndpoint(apiBaseUrl, mode);
       const payload =
         mode === "login"
           ? { email, password }
