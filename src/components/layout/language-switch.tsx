@@ -22,6 +22,14 @@ export function LanguageSwitch({ locale }: { locale: Locale }) {
             ? "bg-[var(--color-accent-bg)] text-[var(--color-accent-text)]"
             : "text-[var(--color-control-text-muted)] hover:text-[var(--color-control-text)]",
         )}
+        style={
+          locale === "tr"
+            ? {
+                color: "var(--color-accent-text)",
+                WebkitTextFillColor: "var(--color-accent-text)",
+              }
+            : undefined
+        }
       >
         TR
       </Link>
@@ -33,6 +41,14 @@ export function LanguageSwitch({ locale }: { locale: Locale }) {
             ? "bg-[var(--color-accent-bg)] text-[var(--color-accent-text)]"
             : "text-[var(--color-control-text-muted)] hover:text-[var(--color-control-text)]",
         )}
+        style={
+          locale === "en"
+            ? {
+                color: "var(--color-accent-text)",
+                WebkitTextFillColor: "var(--color-accent-text)",
+              }
+            : undefined
+        }
       >
         EN
       </Link>
