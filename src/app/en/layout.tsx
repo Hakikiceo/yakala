@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { ComingSoonScreen } from "@/components/coming-soon/coming-soon-screen";
 import { SiteShell } from "@/components/layout/site-shell";
 import "@/app/globals.css";
 import { isComingSoonModeEnabled } from "@/data/site";
+import { CENTRAL_SESSION_COOKIE } from "@/lib/central-session";
 import { siteMetadataBase } from "@/lib/metadata";
 
 export const metadata: Metadata = {
@@ -23,23 +25,27 @@ const liveThemeInitScript = `
 
 const comingSoonThemeInitScript = `document.documentElement.dataset.theme = "dark";`;
 
-export default function EnglishLayout({ children }: { children: ReactNode }) {
+export default async function EnglishLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const hasCentralSession = Boolean(cookieStore.get(CENTRAL_SESSION_COOKIE)?.value);
+  const showComingSoon = isComingSoonModeEnabled && !hasCentralSession;
+
   return (
     <html
       lang="en"
       className="h-full scroll-smooth antialiased"
       suppressHydrationWarning
-      data-theme={isComingSoonModeEnabled ? "dark" : undefined}
+      data-theme={showComingSoon ? "dark" : undefined}
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: isComingSoonModeEnabled ? comingSoonThemeInitScript : liveThemeInitScript,
+            __html: showComingSoon ? comingSoonThemeInitScript : liveThemeInitScript,
           }}
         />
       </head>
       <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-text)]">
-        {isComingSoonModeEnabled ? (
+        {showComingSoon ? (
           <ComingSoonScreen locale="en" />
         ) : (
           <SiteShell locale="en">{children}</SiteShell>
