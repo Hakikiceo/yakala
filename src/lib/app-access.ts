@@ -8,6 +8,10 @@ export type AppAccessResult =
   | { ok: true; userId: string; email: string | null; hasAccess: boolean }
   | { ok: false; status: number; message: string };
 
+export type UserAccessProfileResult =
+  | { ok: true; userId: string; email: string | null; appAccess: string[] }
+  | { ok: false; status: number; message: string };
+
 function getSupabaseConfig(): SupabaseConfig | null {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -111,6 +115,29 @@ function hasAppAccessFromMetadata(metadata: SupabaseUserMetadata, appKey: string
   return false;
 }
 
+function getAppAccessListFromMetadata(metadata: SupabaseUserMetadata) {
+  const raw = metadata.app_access;
+
+  if (Array.isArray(raw)) {
+    return raw.filter((value): value is string => typeof value === "string");
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (raw && typeof raw === "object") {
+    return Object.entries(raw as Record<string, unknown>)
+      .filter(([, enabled]) => enabled === true)
+      .map(([appKey]) => appKey);
+  }
+
+  return [];
+}
+
 export async function resolveUserAccessByToken(token: string, appKey: string): Promise<AppAccessResult> {
   const config = getSupabaseConfig();
 
@@ -133,5 +160,32 @@ export async function resolveUserAccessByToken(token: string, appKey: string): P
     userId: userResult.userId,
     email: userResult.email,
     hasAccess: hasAppAccessFromMetadata(userResult.metadata, appKey),
+  };
+}
+
+export async function resolveUserAccessProfileByToken(
+  token: string,
+): Promise<UserAccessProfileResult> {
+  const config = getSupabaseConfig();
+
+  if (!config) {
+    return {
+      ok: false,
+      status: 500,
+      message: "Auth servis degiskenleri eksik.",
+    };
+  }
+
+  const userResult = await getSupabaseUserByToken(config, token);
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  return {
+    ok: true,
+    userId: userResult.userId,
+    email: userResult.email,
+    appAccess: getAppAccessListFromMetadata(userResult.metadata),
   };
 }

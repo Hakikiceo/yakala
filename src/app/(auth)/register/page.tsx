@@ -8,7 +8,7 @@ export const metadata: Metadata = buildStaticPageMetadata({
   locale: "tr",
   path: "/register",
   title: "Merkezi Kayit",
-  description: "YAKALA merkezi kayit rotasi uzerinden Ihale Radar token handoff islemi.",
+  description: "YAKALA merkezi hesap kayit sayfasi.",
 });
 
 export default async function TurkishRegisterPage({
