@@ -7,6 +7,9 @@ import type { Locale } from "@/types/i18n";
 type GoogleCallbackClientProps = {
   locale: Locale;
 };
+type SessionPayload = {
+  appAccess?: unknown;
+};
 
 const content = {
   tr: {
@@ -59,7 +62,18 @@ export function GoogleCallbackClient({ locale }: GoogleCallbackClientProps) {
           return;
         }
 
-        window.location.assign(locale === "en" ? "/en/apps" : "/apps");
+        const payload = (await response.json().catch(() => null)) as SessionPayload | null;
+        const rawAppAccess = payload?.appAccess;
+        const appAccess = Array.isArray(rawAppAccess)
+          ? rawAppAccess.filter((item): item is string => typeof item === "string")
+          : [];
+
+        if (appAccess.includes("ihaleradar")) {
+          window.location.assign(locale === "en" ? "/en/ihale/app" : "/ihale/app");
+          return;
+        }
+
+        window.location.assign(locale === "en" ? "/en" : "/");
       } catch {
         if (active) {
           setError(true);

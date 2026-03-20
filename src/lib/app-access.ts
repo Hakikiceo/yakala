@@ -49,14 +49,24 @@ type SupabaseUserMetadata = {
 };
 
 async function getSupabaseUserByToken(config: SupabaseConfig, token: string) {
-  const response = await fetch(`${config.url}/auth/v1/user`, {
-    method: "GET",
-    headers: {
-      apikey: config.anonKey,
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${config.url}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+  } catch {
+    return {
+      ok: false as const,
+      status: 502,
+      message: "Kimlik servisine baglanilamadi.",
+    };
+  }
 
   const payload = (await response.json().catch(() => null)) as unknown;
 
