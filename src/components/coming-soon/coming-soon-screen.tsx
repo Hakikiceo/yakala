@@ -108,6 +108,8 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
   const [pendingAccess, setPendingAccess] = useState(false);
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
+  const privacyHref = locale === "en" ? "/en/legal/privacy" : "/legal/privacy";
+  const termsHref = locale === "en" ? "/en/legal/terms" : "/legal/terms";
 
   useEffect(() => {
     setPendingAccess(hasPendingAccess());
@@ -492,6 +494,29 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
           <p className={cn("whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.8em]", isDark ? "text-white" : "text-zinc-600")}>
             {content.version}
           </p>
+        </div>
+
+        <div className="absolute bottom-6 right-6 z-20">
+          <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.2em]">
+            <Link
+              href={privacyHref}
+              className={cn(
+                "underline decoration-transparent underline-offset-4 transition hover:decoration-current",
+                isDark ? "text-zinc-400 hover:text-zinc-200" : "text-zinc-600 hover:text-zinc-800",
+              )}
+            >
+              {locale === "en" ? "Privacy" : "Gizlilik"}
+            </Link>
+            <Link
+              href={termsHref}
+              className={cn(
+                "underline decoration-transparent underline-offset-4 transition hover:decoration-current",
+                isDark ? "text-zinc-400 hover:text-zinc-200" : "text-zinc-600 hover:text-zinc-800",
+              )}
+            >
+              {locale === "en" ? "Terms" : "Kosullar"}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
