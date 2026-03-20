@@ -305,47 +305,37 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
 
             <div
               className={cn(
-                "flex rounded-full border p-1 backdrop-blur-md",
+                "flex rounded-full border p-1 text-[11px] font-bold uppercase tracking-[0.12em] backdrop-blur-md",
                 isDark ? "border-white/5 bg-white/5" : "border-zinc-200 bg-zinc-200/50",
               )}
             >
               <Link
                 href={getLocalizedPath("tr", "/")}
-                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
+                aria-current={locale === "tr" ? "page" : undefined}
+                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3.5 py-1.5 transition-all ${
                   locale === "tr"
                     ? isDark
-                      ? "bg-white text-zinc-950 shadow-lg"
-                      : "bg-zinc-900 text-white shadow-lg"
-                    : "text-zinc-500"
+                      ? "bg-white !text-zinc-950 shadow-lg"
+                      : "bg-zinc-900 !text-white shadow-lg"
+                    : isDark
+                      ? "text-zinc-300 hover:text-zinc-100"
+                      : "text-zinc-600 hover:text-zinc-900"
                 }`}
-                style={
-                  locale === "tr"
-                    ? {
-                        color: isDark ? "#09090b" : "#ffffff",
-                        WebkitTextFillColor: isDark ? "#09090b" : "#ffffff",
-                      }
-                    : undefined
-                }
               >
                 TR
               </Link>
               <Link
                 href={getLocalizedPath("en", "/")}
-                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
+                aria-current={locale === "en" ? "page" : undefined}
+                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3.5 py-1.5 transition-all ${
                   locale === "en"
                     ? isDark
-                      ? "bg-white text-zinc-950 shadow-lg"
-                      : "bg-zinc-900 text-white shadow-lg"
-                    : "text-zinc-500"
+                      ? "bg-white !text-zinc-950 shadow-lg"
+                      : "bg-zinc-900 !text-white shadow-lg"
+                    : isDark
+                      ? "text-zinc-300 hover:text-zinc-100"
+                      : "text-zinc-600 hover:text-zinc-900"
                 }`}
-                style={
-                  locale === "en"
-                    ? {
-                        color: isDark ? "#09090b" : "#ffffff",
-                        WebkitTextFillColor: isDark ? "#09090b" : "#ffffff",
-                      }
-                    : undefined
-                }
               >
                 EN
               </Link>
