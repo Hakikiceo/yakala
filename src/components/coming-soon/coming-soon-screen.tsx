@@ -303,25 +303,41 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
             >
               <Link
                 href={getLocalizedPath("tr", "/")}
-                className={`rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
+                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
                   locale === "tr"
                     ? isDark
                       ? "bg-white text-zinc-950 shadow-lg"
                       : "bg-zinc-900 text-white shadow-lg"
                     : "text-zinc-500"
                 }`}
+                style={
+                  locale === "tr"
+                    ? {
+                        color: isDark ? "#09090b" : "#ffffff",
+                        WebkitTextFillColor: isDark ? "#09090b" : "#ffffff",
+                      }
+                    : undefined
+                }
               >
                 TR
               </Link>
               <Link
                 href={getLocalizedPath("en", "/")}
-                className={`rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
+                className={`inline-flex min-w-12 items-center justify-center rounded-full px-3 py-1 text-[9px] font-bold tracking-[0.24em] transition-all ${
                   locale === "en"
                     ? isDark
                       ? "bg-white text-zinc-950 shadow-lg"
                       : "bg-zinc-900 text-white shadow-lg"
                     : "text-zinc-500"
                 }`}
+                style={
+                  locale === "en"
+                    ? {
+                        color: isDark ? "#09090b" : "#ffffff",
+                        WebkitTextFillColor: isDark ? "#09090b" : "#ffffff",
+                      }
+                    : undefined
+                }
               >
                 EN
               </Link>
