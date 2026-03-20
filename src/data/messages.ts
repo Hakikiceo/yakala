@@ -433,7 +433,7 @@ export const messages: Record<Locale, LocaleMessages> = {
     comingSoonPage: {
       status: "Sistem Hazirlaniyor // V3.0",
       logo: "YAKALA",
-      slogan: "Isinizi buyuten radar uygulamalari",
+      slogan: "Takip Etme. Yakala!",
       earlyAccessTitle: "Erken erisim istegi",
       earlyAccessDescription:
         "Ihale Radar ve sonraki urunler icin hesap olusturun. Erişim taleplerini merkezi panelden manuel onaylayarak aktif ediyoruz.",
@@ -693,7 +693,7 @@ export const messages: Record<Locale, LocaleMessages> = {
     comingSoonPage: {
       status: "System Preparing // V3.0",
       logo: "YAKALA",
-      slogan: "Radar applications that grow your business",
+      slogan: "Don’t just track it. Capture it.",
       earlyAccessTitle: "Early access request",
       earlyAccessDescription:
         "Create your account for Ihale Radar and upcoming products. Access requests are activated after manual approval from the central panel.",
