@@ -693,7 +693,7 @@ export const messages: Record<Locale, LocaleMessages> = {
     comingSoonPage: {
       status: "System Preparing // V3.0",
       logo: "YAKALA",
-      slogan: "Don’t just track it. Capture it.",
+      slogan: "Don’t just track it. Yakala!",
       earlyAccessTitle: "Early access request",
       earlyAccessDescription:
         "Create your account now to request early access to our products.",
