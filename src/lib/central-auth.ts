@@ -2,6 +2,23 @@ export type AuthMode = "login" | "register";
 
 export type AuthApp = "ihaleradar" | "unknown";
 
+function isLocalDevelopmentOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    return (
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname === "::1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production";
+}
+
 export function parseAllowedReturnTo(raw: string | undefined) {
   if (!raw) {
     return [];
@@ -18,6 +35,17 @@ export function parseAllowedReturnTo(raw: string | undefined) {
         return null;
       }
     })
+    .filter((value) => {
+      if (!value) {
+        return false;
+      }
+
+      if (isProductionRuntime() && isLocalDevelopmentOrigin(value)) {
+        return false;
+      }
+
+      return true;
+    })
     .filter((value): value is string => Boolean(value));
 }
 
@@ -33,6 +61,10 @@ export function isAllowedReturnTo(returnTo: string, allowedList: string[]) {
   const targetUrl = toUrl(returnTo);
 
   if (!targetUrl || (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:")) {
+    return false;
+  }
+
+  if (isProductionRuntime() && isLocalDevelopmentOrigin(targetUrl.origin)) {
     return false;
   }
 
