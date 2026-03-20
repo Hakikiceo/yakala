@@ -177,6 +177,10 @@ type LocaleMessages = {
     status: string;
     logo: string;
     slogan: string;
+    earlyAccessTitle: string;
+    earlyAccessDescription: string;
+    earlyAccessRegister: string;
+    earlyAccessLogin: string;
     placeholder: string;
     button: string;
     submitting: string;
@@ -430,6 +434,11 @@ export const messages: Record<Locale, LocaleMessages> = {
       status: "Sistem Hazirlaniyor // V3.0",
       logo: "YAKALA",
       slogan: "Isinizi buyuten radar uygulamalari",
+      earlyAccessTitle: "Erken erisim istegi",
+      earlyAccessDescription:
+        "Ihale Radar ve sonraki urunler icin hesap olusturun. Erişim taleplerini merkezi panelden manuel onaylayarak aktif ediyoruz.",
+      earlyAccessRegister: "Erken Erişim icin Hesap Olustur",
+      earlyAccessLogin: "Hesabim var, Giris Yap",
       placeholder: "E-posta adresinizi birakin...",
       button: "Haberdar Et",
       submitting: "Gonderiliyor",
@@ -685,6 +694,11 @@ export const messages: Record<Locale, LocaleMessages> = {
       status: "System Preparing // V3.0",
       logo: "YAKALA",
       slogan: "Radar applications that grow your business",
+      earlyAccessTitle: "Early access request",
+      earlyAccessDescription:
+        "Create your account for Ihale Radar and upcoming products. Access requests are activated after manual approval from the central panel.",
+      earlyAccessRegister: "Create Account for Early Access",
+      earlyAccessLogin: "I already have an account",
       placeholder: "Leave your email address...",
       button: "Notify Me",
       submitting: "Sending",

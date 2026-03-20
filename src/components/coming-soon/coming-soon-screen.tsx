@@ -104,6 +104,8 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
   });
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
+  const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -398,6 +400,42 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
                   {content.error}
                 </p>
               ) : null}
+
+              <div
+                className={cn(
+                  "mt-8 rounded-2xl border p-5 text-left",
+                  isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white/70",
+                )}
+              >
+                <h3 className={cn("text-sm uppercase tracking-[0.2em]", isDark ? "text-white/80" : "text-zinc-700")}>
+                  {content.earlyAccessTitle}
+                </h3>
+                <p className={cn("mt-3 text-sm leading-6", isDark ? "text-zinc-300" : "text-zinc-600")}>
+                  {content.earlyAccessDescription}
+                </p>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <Link
+                    href={registerHref}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-sm px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
+                      isDark ? "bg-white text-zinc-950" : "bg-zinc-900 text-white",
+                    )}
+                  >
+                    {content.earlyAccessRegister}
+                  </Link>
+                  <Link
+                    href={loginHref}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-sm border px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02]",
+                      isDark
+                        ? "border-white/20 bg-transparent text-zinc-200"
+                        : "border-zinc-300 bg-transparent text-zinc-700",
+                    )}
+                  >
+                    {content.earlyAccessLogin}
+                  </Link>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-center pt-20 opacity-20">
