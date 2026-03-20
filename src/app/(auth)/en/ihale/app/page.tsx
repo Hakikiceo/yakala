@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { resolveUserAccessByToken } from "@/lib/app-access";
+import { resolveUserAccessByToken, resolveUserAccessProfileByToken } from "@/lib/app-access";
+import { CENTRAL_SESSION_COOKIE } from "@/lib/central-session";
 import { buildIhaleDashboardRedirectUrl } from "@/lib/ihale-handoff";
 import { IHALE_SESSION_COOKIE } from "@/lib/ihale-session";
 import { buildStaticPageMetadata } from "@/lib/metadata";
@@ -16,19 +17,26 @@ export const metadata: Metadata = buildStaticPageMetadata({
 
 export default async function IhaleAppPageEn() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(IHALE_SESSION_COOKIE)?.value;
+  const ihaleToken = cookieStore.get(IHALE_SESSION_COOKIE)?.value;
+  const centralToken = cookieStore.get(CENTRAL_SESSION_COOKIE)?.value;
+
+  const token = ihaleToken || centralToken;
 
   if (!token) {
-    redirect("/en/ihale/login");
+    redirect("/en/login?app=ihaleradar");
   }
 
-  const access = await resolveUserAccessByToken(token, "ihaleradar");
+  const access = ihaleToken
+    ? await resolveUserAccessByToken(token, "ihaleradar")
+    : await resolveUserAccessProfileByToken(token);
 
   if (!access.ok) {
-    redirect("/en/ihale/login");
+    redirect("/en/login?app=ihaleradar");
   }
 
-  if (!access.hasAccess) {
+  const hasAccess = "hasAccess" in access ? access.hasAccess : access.appAccess.includes("ihaleradar");
+
+  if (!hasAccess) {
     redirect("/en/ihale/no-access");
   }
 

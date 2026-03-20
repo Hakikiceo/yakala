@@ -184,8 +184,14 @@ export function CentralAuthForm({
 
   const googleStartHref = useMemo(() => {
     const params = new URLSearchParams({ locale });
+    if (appParam) {
+      params.set("app", appParam);
+    }
+    if (returnToParam) {
+      params.set("return_to", returnToParam);
+    }
     return `/api/auth/google/start?${params.toString()}`;
-  }, [locale]);
+  }, [appParam, locale, returnToParam]);
 
   function resolvePostLoginPath(localeValue: Locale) {
     return localeValue === "en" ? "/en" : "/";

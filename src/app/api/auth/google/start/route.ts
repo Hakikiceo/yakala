@@ -14,7 +14,10 @@ function getBaseUrl(request: Request) {
 
 export async function GET(request: Request) {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const locale = new URL(request.url).searchParams.get("locale") === "en" ? "en" : "tr";
+  const requestUrl = new URL(request.url);
+  const locale = requestUrl.searchParams.get("locale") === "en" ? "en" : "tr";
+  const app = requestUrl.searchParams.get("app");
+  const returnTo = requestUrl.searchParams.get("return_to");
 
   if (!supabaseUrl) {
     return NextResponse.redirect(new URL(locale === "en" ? "/en/login" : "/login", request.url));
@@ -22,7 +25,14 @@ export async function GET(request: Request) {
 
   const origin = getBaseUrl(request);
   const callbackPath = locale === "en" ? "/en/auth/callback" : "/auth/callback";
-  const redirectTo = `${origin}${callbackPath}`;
+  const callbackUrl = new URL(`${origin}${callbackPath}`);
+  if (app) {
+    callbackUrl.searchParams.set("app", app);
+  }
+  if (returnTo) {
+    callbackUrl.searchParams.set("return_to", returnTo);
+  }
+  const redirectTo = callbackUrl.toString();
 
   const authorizeUrl = new URL(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/authorize`);
   authorizeUrl.searchParams.set("provider", "google");
