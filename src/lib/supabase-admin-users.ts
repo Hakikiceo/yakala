@@ -111,16 +111,32 @@ async function fetchSupabaseAdmin(path: string, init: RequestInit = {}) {
 }
 
 export async function listAdminUsers() {
-  const result = await fetchSupabaseAdmin("/auth/v1/admin/users?page=1&per_page=200");
+  const perPage = 200;
+  const maxPages = 20;
+  const usersRaw: Record<string, unknown>[] = [];
 
-  if (!result.ok) {
-    return result;
+  for (let page = 1; page <= maxPages; page += 1) {
+    const result = await fetchSupabaseAdmin(`/auth/v1/admin/users?page=${page}&per_page=${perPage}`);
+
+    if (!result.ok) {
+      return result;
+    }
+
+    const root = result.payload as { users?: unknown } | null;
+    const chunk = Array.isArray(root?.users)
+      ? root.users.filter(
+          (user): user is Record<string, unknown> => Boolean(user && typeof user === "object"),
+        )
+      : [];
+
+    usersRaw.push(...chunk);
+
+    if (chunk.length < perPage) {
+      break;
+    }
   }
 
-  const root = result.payload as { users?: unknown } | null;
-  const usersRaw = Array.isArray(root?.users) ? root?.users : [];
   const users = usersRaw
-    .filter((user): user is Record<string, unknown> => Boolean(user && typeof user === "object"))
     .map((user) => normalizeUser(user))
     .filter((user) => user.id.length > 0);
 
@@ -182,5 +198,51 @@ export async function updateUserAccessMetadata({
     status: 200,
     message: "",
     user,
+  };
+}
+
+export async function addUserAccessRequest({
+  userId,
+  appKey,
+}: {
+  userId: string;
+  appKey: string;
+}) {
+  const usersResult = await listAdminUsers();
+
+  if (!usersResult.ok) {
+    return usersResult;
+  }
+
+  const user = usersResult.users.find((candidate) => candidate.id === userId);
+
+  if (!user) {
+    return {
+      ok: false as const,
+      status: 404,
+      message: "Kullanici bulunamadi.",
+    };
+  }
+
+  const nextAccessRequests = unique([...user.accessRequests, appKey]);
+
+  const updateResult = await fetchSupabaseAdmin(`/auth/v1/admin/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      user_metadata: {
+        ...user.rawMetadata,
+        access_requests: nextAccessRequests,
+      },
+    }),
+  });
+
+  if (!updateResult.ok) {
+    return updateResult;
+  }
+
+  return {
+    ok: true as const,
+    status: 200,
+    message: "",
   };
 }

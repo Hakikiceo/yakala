@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { resolveUserAccessProfileByToken } from "@/lib/app-access";
+import { addUserAccessRequest } from "@/lib/supabase-admin-users";
 import {
   CENTRAL_SESSION_COOKIE,
   CENTRAL_SESSION_MAX_AGE_SECONDS,
@@ -61,6 +62,11 @@ export async function POST(request: Request) {
   }
 
   if (profile.appAccess.length === 0) {
+    await addUserAccessRequest({
+      userId: profile.userId,
+      appKey: "ihaleradar",
+    }).catch(() => null);
+
     return NextResponse.json(
       { message: "Erisim talebiniz henuz onaylanmadi." },
       { status: 403 },

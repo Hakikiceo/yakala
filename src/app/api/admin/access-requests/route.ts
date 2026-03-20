@@ -33,8 +33,36 @@ export async function GET() {
     return NextResponse.json({ message: usersResult.message }, { status: usersResult.status });
   }
 
-  const pending = usersResult.users.filter((user) => user.accessRequests.includes(IHALE_APP_KEY));
-  const approved = usersResult.users.filter((user) => user.appAccess.includes(IHALE_APP_KEY));
+  const approved = usersResult.users
+    .filter((user) => user.appAccess.includes(IHALE_APP_KEY))
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+  const pending = usersResult.users
+    .filter((user) => {
+      if (!user.email) {
+        return false;
+      }
+
+      if (user.appAccess.includes(IHALE_APP_KEY)) {
+        return false;
+      }
+
+      if (user.accessRequests.includes(IHALE_APP_KEY)) {
+        return true;
+      }
+
+      // Fallback: metadata'si eksik kayitlarda da admin panelde gorunur olsun.
+      return true;
+    })
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
 
   return NextResponse.json({
     pending,
