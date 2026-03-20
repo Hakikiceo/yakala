@@ -67,7 +67,13 @@ const stars = Array.from({ length: 60 }, (_, index) => ({
   delay: ((index * 13) % 50) / 10,
 }));
 
-export function ComingSoonScreen({ locale }: { locale: Locale }) {
+export function ComingSoonScreen({
+  locale,
+  initialEarlyAccessCount = 457,
+}: {
+  locale: Locale;
+  initialEarlyAccessCount?: number;
+}) {
   const dictionary = getMessages(locale);
   const content = dictionary.comingSoonPage;
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -78,7 +84,7 @@ export function ComingSoonScreen({ locale }: { locale: Locale }) {
     return document.documentElement.dataset.theme === "light" ? "light" : "dark";
   });
   const [pendingAccess, setPendingAccess] = useState(false);
-  const [earlyAccessCount, setEarlyAccessCount] = useState<number | null>(null);
+  const [earlyAccessCount, setEarlyAccessCount] = useState<number | null>(initialEarlyAccessCount);
   const registerHref = locale === "en" ? "/en/ihale/register" : "/ihale/register";
   const loginHref = locale === "en" ? "/en/ihale/login" : "/ihale/login";
   const privacyHref = locale === "en" ? "/en/legal/privacy" : "/legal/privacy";

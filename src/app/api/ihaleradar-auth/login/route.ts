@@ -1,9 +1,12 @@
+import { addUserAccessRequest } from "@/lib/supabase-admin-users";
+
 type LoginBody = {
   email?: unknown;
   password?: unknown;
 };
 
 type SupabaseUserPayload = {
+  id?: unknown;
   email_confirmed_at?: unknown;
   user_metadata?: unknown;
 };
@@ -129,6 +132,7 @@ export async function POST(request: Request) {
   }
 
   const user = (userPayload as SupabaseUserPayload) ?? {};
+  const userId = typeof user.id === "string" ? user.id : "";
   const metadata =
     user.user_metadata && typeof user.user_metadata === "object"
       ? (user.user_metadata as SupabaseUserMetadata)
@@ -143,6 +147,13 @@ export async function POST(request: Request) {
   }
 
   if (!hasAnyAppAccess(metadata)) {
+    if (userId) {
+      await addUserAccessRequest({
+        userId,
+        appKey: "ihaleradar",
+      }).catch(() => null);
+    }
+
     return Response.json(
       { message: "Erisim talebiniz henuz onaylanmadi. Onaylandiginda bilgilendirileceksiniz." },
       { status: 403 },

@@ -9,7 +9,7 @@ type EarlyAccessCounterState = {
 
 const storageDir = path.join(process.cwd(), "storage");
 const counterFile = path.join(storageDir, "early-access-counter.json");
-const defaultBase = 450;
+const defaultBase = 457;
 
 function resolveBaseCount() {
   const parsed = Number.parseInt(process.env.EARLY_ACCESS_BASE ?? "", 10);
@@ -69,4 +69,3 @@ export async function incrementEarlyAccessCount() {
   await writeCounterState(nextState);
   return nextState.base + nextState.increments;
 }
-

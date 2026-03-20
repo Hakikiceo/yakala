@@ -8,6 +8,7 @@ import "@/app/globals.css";
 import { isComingSoonModeEnabled } from "@/data/site";
 import { resolveUserAccessProfileByToken } from "@/lib/app-access";
 import { CENTRAL_SESSION_COOKIE } from "@/lib/central-session";
+import { getEarlyAccessCount } from "@/lib/early-access-counter";
 import { siteMetadataBase } from "@/lib/metadata";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default async function TurkishLayout({ children }: { children: ReactNode 
   }
 
   const showComingSoon = isComingSoonModeEnabled && !hasApprovedAccess;
+  const initialEarlyAccessCount = showComingSoon ? await getEarlyAccessCount().catch(() => 457) : 457;
 
   return (
     <html
@@ -54,7 +56,7 @@ export default async function TurkishLayout({ children }: { children: ReactNode 
       </head>
       <body className="min-h-full bg-[var(--color-bg)] text-[var(--color-text)]">
         {showComingSoon ? (
-          <ComingSoonScreen locale="tr" />
+          <ComingSoonScreen locale="tr" initialEarlyAccessCount={initialEarlyAccessCount} />
         ) : (
           <SiteShell locale="tr">{children}</SiteShell>
         )}
