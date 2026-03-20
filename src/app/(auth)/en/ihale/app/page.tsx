@@ -34,7 +34,10 @@ export default async function IhaleAppPageEn() {
     redirect("/en/login?app=ihaleradar");
   }
 
-  const hasAccess = "hasAccess" in access ? access.hasAccess : access.appAccess.includes("ihaleradar");
+  const hasAccess =
+    "hasAccess" in access
+      ? access.hasAccess
+      : access.appAccess.includes("ihaleradar") || access.appAccess.length > 0;
 
   if (!hasAccess) {
     redirect("/en/ihale/no-access");
