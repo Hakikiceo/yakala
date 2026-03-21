@@ -64,9 +64,27 @@ export async function GET() {
       return bTime - aTime;
     });
 
+  const recent = usersResult.users
+    .filter((user) => Boolean(user.email))
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 10)
+    .map((user) => ({
+      ...user,
+      state: user.appAccess.includes(IHALE_APP_KEY)
+        ? "approved"
+        : user.accessRequests.includes(IHALE_APP_KEY)
+          ? "pending"
+          : "new",
+    }));
+
   return NextResponse.json({
     pending,
     approved,
+    recent,
   });
 }
 

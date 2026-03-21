@@ -14,9 +14,14 @@ type AccessUser = {
   notifyTarget: string | null;
 };
 
+type RecentAccessUser = AccessUser & {
+  state: "approved" | "pending" | "new";
+};
+
 type AccessResponse = {
   pending: AccessUser[];
   approved: AccessUser[];
+  recent: RecentAccessUser[];
 };
 
 type AdminAccessPanelProps = {
@@ -36,6 +41,7 @@ const content = {
     refresh: "Yenile",
     pending: "Bekleyen Talepler",
     approved: "Onayli Erişimler",
+    recent: "Son 10 Kayit",
     approve: "Onayla",
     revoke: "Yetkiyi Kaldir",
     emptyPending: "Bekleyen talep yok.",
@@ -45,6 +51,12 @@ const content = {
     genericError: "Islem basarisiz oldu.",
     notifyLabel: "Bildirim",
     notifyMissing: "Bilgi girilmemis",
+    stateLabel: "Durum",
+    state: {
+      approved: "Onayli",
+      pending: "Beklemede",
+      new: "Yeni",
+    },
   },
   en: {
     title: "Central Access Approval Panel",
@@ -56,6 +68,7 @@ const content = {
     refresh: "Refresh",
     pending: "Pending Requests",
     approved: "Approved Access",
+    recent: "Last 10 Registrations",
     approve: "Approve",
     revoke: "Revoke",
     emptyPending: "No pending requests.",
@@ -65,6 +78,12 @@ const content = {
     genericError: "Operation failed.",
     notifyLabel: "Notification",
     notifyMissing: "Not provided",
+    stateLabel: "State",
+    state: {
+      approved: "Approved",
+      pending: "Pending",
+      new: "New",
+    },
   },
 } as const;
 
@@ -89,7 +108,7 @@ export function AdminAccessPanel({
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AccessResponse>({ pending: [], approved: [] });
+  const [data, setData] = useState<AccessResponse>({ pending: [], approved: [], recent: [] });
   const [loading, setLoading] = useState(false);
   const [pendingAction, startTransition] = useTransition();
 
@@ -153,7 +172,7 @@ export function AdminAccessPanel({
   async function handleLogout() {
     await fetch("/api/admin/auth", { method: "DELETE" }).catch(() => null);
     setAuthenticated(false);
-    setData({ pending: [], approved: [] });
+    setData({ pending: [], approved: [], recent: [] });
   }
 
   function updateAccess(userId: string, action: "approve" | "revoke") {
@@ -241,6 +260,25 @@ export function AdminAccessPanel({
                   {t.logout}
                 </button>
               </div>
+
+              <article className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+                <h2 className="text-sm uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.recent}</h2>
+                <div className="mt-4 space-y-3">
+                  {data.recent.length === 0 ? (
+                    <p className="text-sm text-[var(--color-muted)]">{t.emptyPending}</p>
+                  ) : (
+                    data.recent.map((user) => (
+                      <div key={`recent-${user.id}`} className="rounded-xl border border-[var(--color-border)] p-3">
+                        <p className="text-sm font-medium">{user.email ?? user.id}</p>
+                        <p className="mt-1 text-xs text-[var(--color-subtle)]">{formatDate(user.createdAt)}</p>
+                        <p className="mt-1 text-xs text-[var(--color-subtle)]">
+                          {t.stateLabel}: {t.state[user.state]}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </article>
 
               <div className="mt-8 grid gap-6 lg:grid-cols-2">
                 <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
