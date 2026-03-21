@@ -120,7 +120,7 @@ export function ComingSoonScreen({
     void loadStats();
     const intervalId = window.setInterval(() => {
       void loadStats();
-    }, 15000);
+    }, 5000);
 
     return () => {
       active = false;
