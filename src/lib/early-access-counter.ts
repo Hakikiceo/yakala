@@ -20,16 +20,36 @@ function getTemporaryCampaignBoost(now = Date.now()) {
     return 0;
   }
 
-  const elapsed = now - temporaryCampaignStart;
-  const steps = Math.floor(elapsed / temporaryCampaignStepMs) + 1;
+  // Duzenli bot paterni gibi gorunmemesi icin deterministik ama daginik ritim.
+  // Ortalama: ilk hizli akis (90sn) + 3-4dk arasi beklemeler + ara ara mini burst.
+  let cursor = temporaryCampaignStart;
   let boost = 0;
+  let state = 0x9e3779b9; // sabit tohum (deterministik)
 
-  for (let index = 0; index < steps; index += 1) {
-    // 90 saniyede bir +1 / +2 dalgasi (gecici kampanya)
-    boost += index % 2 === 0 ? 1 : 2;
+  while (cursor <= now && cursor < temporaryCampaignEnd) {
+    // xorshift32
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    const rnd = Math.abs(state) % 100;
+
+    // Cogunlukla +1, nadiren +2
+    boost += rnd > 83 ? 2 : 1;
+
+    // 0-24 => hizli (90-120sn), 25-74 => yavas (180-240sn), 75-99 => daha uzun duraklama (240-300sn)
+    let stepSeconds = 90;
+    if (rnd < 25) {
+      stepSeconds = 90 + (rnd % 2) * 30;
+    } else if (rnd < 75) {
+      stepSeconds = 180 + (rnd % 3) * 30;
+    } else {
+      stepSeconds = 240 + (rnd % 3) * 30;
+    }
+
+    cursor += stepSeconds * 1000;
   }
 
-  return boost;
+  return Math.max(0, boost);
 }
 
 export async function getEarlyAccessCount() {
