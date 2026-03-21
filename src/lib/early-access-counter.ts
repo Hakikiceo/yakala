@@ -16,9 +16,12 @@ function resolveBaseCount() {
 }
 
 function getTemporaryCampaignBoost(now = Date.now()) {
-  if (now < temporaryCampaignStart || now >= temporaryCampaignEnd) {
+  if (now < temporaryCampaignStart) {
     return 0;
   }
+
+  // Kampanya bittikten sonra da son boost seviyesi korunur; sayaç geri düşmez.
+  const effectiveNow = Math.min(now, temporaryCampaignEnd - 1);
 
   // Duzenli bot paterni gibi gorunmemesi icin deterministik ama daginik ritim.
   // Ortalama: ilk hizli akis (90sn) + 3-4dk arasi beklemeler + ara ara mini burst.
@@ -26,7 +29,7 @@ function getTemporaryCampaignBoost(now = Date.now()) {
   let boost = 0;
   let state = 0x9e3779b9; // sabit tohum (deterministik)
 
-  while (cursor <= now && cursor < temporaryCampaignEnd) {
+  while (cursor <= effectiveNow && cursor < temporaryCampaignEnd) {
     // xorshift32
     state ^= state << 13;
     state ^= state >>> 17;
