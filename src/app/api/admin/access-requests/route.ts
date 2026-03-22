@@ -28,7 +28,6 @@ function parseSupportedApps(): string[] {
 type UpdatePayload = {
   userId?: unknown;
   email?: unknown;
-  appKey?: unknown;
   action?: unknown;
 };
 
@@ -40,41 +39,63 @@ function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-export async function GET(request: Request) {
-  const authorized = await isAdminSessionActive();
+async function resolveUserId(input: { userId?: string; email?: string }) {
+  if (input.userId) return { ok: true as const, userId: input.userId };
+  if (!input.email) {
+    return { ok: false as const, status: 400, message: "userId veya email zorunludur." };
+  }
 
+  const usersResult = await listAdminUsers();
+  if (!usersResult.ok) {
+    return { ok: false as const, status: usersResult.status, message: usersResult.message };
+  }
+
+  const matched = usersResult.users.find((u) => (u.email ?? "").toLowerCase() === input.email);
+  if (!matched) {
+    return { ok: false as const, status: 404, message: "Kullanici bulunamadi." };
+  }
+
+  return { ok: true as const, userId: matched.id };
+}
+
+async function applyAccessForApps(params: {
+  userId: string;
+  appKeys: string[];
+  approved: boolean;
+}) {
+  for (const appKey of params.appKeys) {
+    const result = await updateUserAccessMetadata({
+      userId: params.userId,
+      appKey,
+      approved: params.approved,
+    });
+
+    if (!result.ok) {
+      return result;
+    }
+  }
+
+  return { ok: true as const };
+}
+
+export async function GET() {
+  const authorized = await isAdminSessionActive();
   if (!authorized) {
     return NextResponse.json({ message: "Yetkisiz istek." }, { status: 401 });
   }
 
   const supportedApps = parseSupportedApps();
-  const requestUrl = new URL(request.url);
-  const requestedAppKey = asText(requestUrl.searchParams.get("appKey"));
-  const appKey = requestedAppKey || supportedApps[0] || "ihaleradar";
-
-  if (!supportedApps.includes(appKey)) {
-    return NextResponse.json({ message: "Gecersiz appKey." }, { status: 400 });
-  }
-
   const usersResult = await listAdminUsers();
 
   if (!usersResult.ok) {
     return NextResponse.json({ message: usersResult.message }, { status: usersResult.status });
   }
 
-  const approved = usersResult.users
-    .filter((user) => user.appAccess.includes(appKey))
-    .sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
-
   const pending = usersResult.users
     .filter((user) => {
       if (!user.email) return false;
-      if (user.appAccess.includes(appKey)) return false;
-      if (user.accessRequests.includes(appKey)) return true;
+      if (user.appAccess.includes("ihaleradar")) return false;
+      if (user.accessRequests.includes("ihaleradar")) return true;
       return true;
     })
     .sort((a, b) => {
@@ -83,35 +104,27 @@ export async function GET(request: Request) {
       return bTime - aTime;
     });
 
-  const recent = usersResult.users
-    .filter((user) => Boolean(user.email))
+  const approved = usersResult.users
+    .filter((user) => user.appAccess.includes("ihaleradar"))
     .sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime;
     })
-    .slice(0, 10)
     .map((user) => ({
       ...user,
-      state: user.appAccess.includes(appKey)
-        ? "approved"
-        : user.accessRequests.includes(appKey)
-          ? "pending"
-          : "new",
+      fullAccessEnabled: supportedApps.every((appKey) => user.appAccess.includes(appKey)),
     }));
 
   return NextResponse.json({
-    appKey,
     supportedApps,
     pending,
     approved,
-    recent,
   });
 }
 
 export async function POST(request: Request) {
   const authorized = await isAdminSessionActive();
-
   if (!authorized) {
     return NextResponse.json({ message: "Yetkisiz istek." }, { status: 401 });
   }
@@ -120,71 +133,81 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as UpdatePayload | null;
   const userId = asText(payload?.userId);
   const email = normalizeEmail(asText(payload?.email));
-  const requestedAppKey = asText(payload?.appKey);
-  const appKey = requestedAppKey || supportedApps[0] || "ihaleradar";
   const action = asText(payload?.action);
 
-  if (!supportedApps.includes(appKey)) {
-    return NextResponse.json({ message: "Gecersiz appKey." }, { status: 400 });
-  }
-
-  if (action !== "approve" && action !== "revoke") {
+  if (!["approve", "revoke", "full_access_on", "full_access_off"].includes(action)) {
     return NextResponse.json({ message: "Gecersiz action." }, { status: 400 });
   }
 
-  let resolvedUserId = userId;
+  const resolved = await resolveUserId({ userId, email });
+  if (!resolved.ok) {
+    return NextResponse.json({ message: resolved.message }, { status: resolved.status });
+  }
 
-  if (!resolvedUserId) {
-    if (!email) {
-      return NextResponse.json({ message: "userId veya email zorunludur." }, { status: 400 });
+  if (action === "approve") {
+    const result = await applyAccessForApps({
+      userId: resolved.userId,
+      appKeys: supportedApps,
+      approved: true,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json({ message: result.message }, { status: result.status });
     }
 
     const usersResult = await listAdminUsers();
-    if (!usersResult.ok) {
-      return NextResponse.json({ message: usersResult.message }, { status: usersResult.status });
+    if (usersResult.ok) {
+      const user = usersResult.users.find((u) => u.id === resolved.userId);
+      if (user) {
+        await notifyAccessApproved({
+          appKey: "ihaleradar",
+          email: user.email,
+          notifyChannel: user.notifyChannel,
+          notifyTarget: user.notifyTarget,
+        });
+      }
     }
 
-    const matched = usersResult.users.find((user) => (user.email ?? "").toLowerCase() === email);
-    if (!matched) {
-      return NextResponse.json({ message: "Kullanici bulunamadi." }, { status: 404 });
-    }
-
-    resolvedUserId = matched.id;
+    return NextResponse.json({ ok: true });
   }
 
-  const result = await updateUserAccessMetadata({
-    userId: resolvedUserId,
-    appKey,
-    approved: action === "approve",
+  if (action === "revoke") {
+    const result = await applyAccessForApps({
+      userId: resolved.userId,
+      appKeys: supportedApps,
+      approved: false,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json({ message: result.message }, { status: result.status });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "full_access_on") {
+    const result = await applyAccessForApps({
+      userId: resolved.userId,
+      appKeys: supportedApps,
+      approved: true,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json({ message: result.message }, { status: result.status });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  const result = await applyAccessForApps({
+    userId: resolved.userId,
+    appKeys: supportedApps,
+    approved: false,
   });
 
   if (!result.ok) {
     return NextResponse.json({ message: result.message }, { status: result.status });
   }
 
-  if (action === "approve" && "user" in result && result.user) {
-    const notificationResult = await notifyAccessApproved({
-      appKey,
-      email: result.user.email,
-      notifyChannel: result.user.notifyChannel,
-      notifyTarget: result.user.notifyTarget,
-    });
-
-    if (!notificationResult.ok) {
-      return NextResponse.json({
-        ok: true,
-        notification: {
-          ok: false,
-          reason: notificationResult.reason,
-        },
-      });
-    }
-  }
-
-  return NextResponse.json({
-    ok: true,
-    notification: {
-      ok: true,
-    },
-  });
+  return NextResponse.json({ ok: true });
 }
