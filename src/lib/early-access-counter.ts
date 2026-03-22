@@ -4,6 +4,9 @@ const defaultBase = 457;
 const temporaryCampaignStart = new Date("2026-03-21T18:22:00+03:00").getTime();
 const temporaryCampaignEnd = new Date("2026-03-22T00:00:00+03:00").getTime();
 const temporaryCampaignStepMs = 90_000;
+const nextDayCampaignStart = new Date("2026-03-22T03:35:00+03:00").getTime();
+const nextDayCampaignEnd = new Date("2026-03-23T03:35:00+03:00").getTime();
+const nextDayCampaignStepMs = 100 * 60 * 1000; // 100 dakika
 
 function resolveBaseCount() {
   const parsed = Number.parseInt(process.env.EARLY_ACCESS_BASE ?? "", 10);
@@ -55,18 +58,49 @@ function getTemporaryCampaignBoost(now = Date.now()) {
   return Math.max(0, boost);
 }
 
+function getLinearWindowBoost({
+  now = Date.now(),
+  start,
+  end,
+  stepMs,
+}: {
+  now?: number;
+  start: number;
+  end: number;
+  stepMs: number;
+}) {
+  if (now < start) {
+    return 0;
+  }
+
+  const effectiveNow = Math.min(now, end - 1);
+
+  if (effectiveNow < start) {
+    return 0;
+  }
+
+  const elapsed = effectiveNow - start;
+  return Math.floor(elapsed / stepMs) + 1;
+}
+
 export async function getEarlyAccessCount() {
   const base = resolveBaseCount();
   const usersResult = await listAdminUsers();
   const temporaryBoost = getTemporaryCampaignBoost();
+  const nextDayBoost = getLinearWindowBoost({
+    now: Date.now(),
+    start: nextDayCampaignStart,
+    end: nextDayCampaignEnd,
+    stepMs: nextDayCampaignStepMs,
+  });
 
   if (!usersResult.ok) {
-    return base + temporaryBoost;
+    return base + temporaryBoost + nextDayBoost;
   }
 
   // Supabase Auth'ta e-posta sahibi her kayit on-erisim sayacina dahil edilir.
   const registeredUsers = usersResult.users.filter((user) => Boolean(user.email)).length;
-  return base + registeredUsers + temporaryBoost;
+  return base + registeredUsers + temporaryBoost + nextDayBoost;
 }
 
 export async function incrementEarlyAccessCount() {
