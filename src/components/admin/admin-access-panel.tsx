@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import type { Locale } from "@/types/i18n";
 
@@ -19,6 +19,8 @@ type RecentAccessUser = AccessUser & {
 };
 
 type AccessResponse = {
+  appKey: string;
+  supportedApps: string[];
   pending: AccessUser[];
   approved: AccessUser[];
   recent: RecentAccessUser[];
@@ -33,47 +35,63 @@ type AdminAccessPanelProps = {
 const content = {
   tr: {
     title: "Merkezi Erişim Onay Paneli",
-    subtitle: "Ihale Radar icin erken erisim taleplerini onaylayin.",
-    keyLabel: "Admin anahtari",
+    subtitle: "Kullanıcıları uygulama bazında onaylayın.",
+    keyLabel: "Admin anahtarı",
     keyPlaceholder: "CENTRAL_ADMIN_PANEL_KEY",
-    login: "Paneli Ac",
-    logout: "Cikis Yap",
+    login: "Paneli Aç",
+    logout: "Çıkış Yap",
     refresh: "Yenile",
-    pending: "Bekleyen Talepler",
-    approved: "Onayli Erişimler",
-    recent: "Son 10 Kayit",
+    appLabel: "Uygulama",
+    searchLabel: "E-posta Ara",
+    searchPlaceholder: "ornek@firma.com",
+    quickGrantTitle: "Hızlı Yetki Ver",
+    quickGrantHint: "Kullanıcı listede görünmese bile e-posta ile bu uygulamaya erişim verebilirsiniz.",
+    quickGrantEmailLabel: "E-posta",
+    quickGrantApprove: "Bu Uygulamayı Ver",
+    quickGrantRevoke: "Bu Uygulamayı Kaldır",
+    pending: "Bekleyenler",
+    approved: "Onaylı Erişimler",
+    recent: "Son 10 Kayıt",
     approve: "Onayla",
-    revoke: "Yetkiyi Kaldir",
-    emptyPending: "Bekleyen talep yok.",
-    emptyApproved: "Onayli kullanici yok.",
-    notConfigured: "Admin panel anahtari sunucuda ayarlanmamis.",
-    unauthorized: "Admin anahtari hatali.",
-    genericError: "Islem basarisiz oldu.",
+    revoke: "Yetkiyi Kaldır",
+    emptyPending: "Bekleyen kullanıcı yok.",
+    emptyApproved: "Onaylı kullanıcı yok.",
+    notConfigured: "Admin panel anahtarı sunucuda ayarlanmamış.",
+    unauthorized: "Admin anahtarı hatalı.",
+    genericError: "İşlem başarısız oldu.",
     notifyLabel: "Bildirim",
-    notifyMissing: "Bilgi girilmemis",
+    notifyMissing: "Bilgi yok",
     stateLabel: "Durum",
     state: {
-      approved: "Onayli",
+      approved: "Onaylı",
       pending: "Beklemede",
       new: "Yeni",
     },
   },
   en: {
     title: "Central Access Approval Panel",
-    subtitle: "Approve early access requests for Ihale Radar.",
+    subtitle: "Approve users per application.",
     keyLabel: "Admin key",
     keyPlaceholder: "CENTRAL_ADMIN_PANEL_KEY",
     login: "Unlock Panel",
     logout: "Sign Out",
     refresh: "Refresh",
-    pending: "Pending Requests",
-    approved: "Approved Access",
+    appLabel: "Application",
+    searchLabel: "Search Email",
+    searchPlaceholder: "example@company.com",
+    quickGrantTitle: "Quick Grant",
+    quickGrantHint: "Grant access by email even if user is not visible in the list.",
+    quickGrantEmailLabel: "Email",
+    quickGrantApprove: "Grant This App",
+    quickGrantRevoke: "Revoke This App",
+    pending: "Pending",
+    approved: "Approved",
     recent: "Last 10 Registrations",
     approve: "Approve",
     revoke: "Revoke",
-    emptyPending: "No pending requests.",
+    emptyPending: "No pending users.",
     emptyApproved: "No approved users.",
-    notConfigured: "Admin panel key is not configured on the server.",
+    notConfigured: "Admin panel key is not configured on server.",
     unauthorized: "Invalid admin key.",
     genericError: "Operation failed.",
     notifyLabel: "Notification",
@@ -88,10 +106,7 @@ const content = {
 } as const;
 
 function formatDate(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "-";
   try {
     return new Date(value).toLocaleString();
   } catch {
@@ -99,48 +114,73 @@ function formatDate(value: string | null) {
   }
 }
 
-export function AdminAccessPanel({
-  locale,
-  configured,
-  initialAuthenticated,
-}: AdminAccessPanelProps) {
+function appLabel(appKey: string) {
+  const map: Record<string, string> = {
+    ihaleradar: "İhale Radar",
+    hiberadar: "Hibe Radar",
+    rakipradar: "Rakip Radar",
+    mapegradar: "Mapeg Radar",
+    muhaseberadar: "Muhasebe Radar",
+    sahibindenradar: "Sahibinden Radar",
+    ajansradar: "Ajans Radar",
+    emlakradar: "Emlak Radar",
+  };
+  return map[appKey] || appKey;
+}
+
+export function AdminAccessPanel({ locale, configured, initialAuthenticated }: AdminAccessPanelProps) {
   const t = content[locale];
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AccessResponse>({ pending: [], approved: [], recent: [] });
+  const [data, setData] = useState<AccessResponse>({
+    appKey: "ihaleradar",
+    supportedApps: ["ihaleradar"],
+    pending: [],
+    approved: [],
+    recent: [],
+  });
+  const [selectedApp, setSelectedApp] = useState("ihaleradar");
+  const [searchEmail, setSearchEmail] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingAction, startTransition] = useTransition();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (appKeyOverride?: string) => {
+      const appKey = appKeyOverride || selectedApp;
+      setLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch("/api/admin/access-requests", { method: "GET", cache: "no-store" });
-      const payload = (await response.json().catch(() => null)) as
-        | AccessResponse
-        | { message?: string }
-        | null;
+      try {
+        const response = await fetch(`/api/admin/access-requests?appKey=${encodeURIComponent(appKey)}`, {
+          method: "GET",
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => null)) as AccessResponse | { message?: string } | null;
 
-      if (!response.ok) {
-        setError((payload as { message?: string } | null)?.message ?? t.genericError);
-        return;
+        if (!response.ok) {
+          setError((payload as { message?: string } | null)?.message ?? t.genericError);
+          return;
+        }
+
+        const parsed = payload as AccessResponse;
+        setData(parsed);
+        setSelectedApp(parsed.appKey || appKey);
+      } catch {
+        setError(t.genericError);
+      } finally {
+        setLoading(false);
       }
-
-      setData(payload as AccessResponse);
-    } catch {
-      setError(t.genericError);
-    } finally {
-      setLoading(false);
-    }
-  }, [t.genericError]);
+    },
+    [selectedApp, t.genericError],
+  );
 
   useEffect(() => {
     if (authenticated) {
-      void fetchData();
+      void fetchData(selectedApp);
     }
-  }, [authenticated, fetchData]);
+  }, [authenticated, fetchData, selectedApp]);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -149,14 +189,11 @@ export function AdminAccessPanel({
     try {
       const response = await fetch("/api/admin/auth", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
       });
 
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-
       if (!response.ok) {
         setError(payload?.message ?? t.unauthorized);
         return;
@@ -164,6 +201,7 @@ export function AdminAccessPanel({
 
       setAuthenticated(true);
       setKey("");
+      await fetchData(selectedApp);
     } catch {
       setError(t.genericError);
     }
@@ -172,20 +210,22 @@ export function AdminAccessPanel({
   async function handleLogout() {
     await fetch("/api/admin/auth", { method: "DELETE" }).catch(() => null);
     setAuthenticated(false);
-    setData({ pending: [], approved: [], recent: [] });
+    setData({ appKey: selectedApp, supportedApps: data.supportedApps, pending: [], approved: [], recent: [] });
   }
 
-  function updateAccess(userId: string, action: "approve" | "revoke") {
+  function updateAccess(params: { userId?: string; email?: string; action: "approve" | "revoke" }) {
     startTransition(async () => {
       setError(null);
-
       try {
         const response = await fetch("/api/admin/access-requests", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userId, appKey: "ihaleradar", action }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: params.userId,
+            email: params.email,
+            appKey: selectedApp,
+            action: params.action,
+          }),
         });
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
 
@@ -194,12 +234,28 @@ export function AdminAccessPanel({
           return;
         }
 
-        await fetchData();
+        if (params.email) {
+          setManualEmail("");
+        }
+
+        await fetchData(selectedApp);
       } catch {
         setError(t.genericError);
       }
     });
   }
+
+  const normalizedSearch = searchEmail.trim().toLowerCase();
+
+  const filteredPending = useMemo(() => {
+    if (!normalizedSearch) return data.pending;
+    return data.pending.filter((u) => (u.email ?? "").toLowerCase().includes(normalizedSearch));
+  }, [data.pending, normalizedSearch]);
+
+  const filteredApproved = useMemo(() => {
+    if (!normalizedSearch) return data.approved;
+    return data.approved.filter((u) => (u.email ?? "").toLowerCase().includes(normalizedSearch));
+  }, [data.approved, normalizedSearch]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -246,7 +302,7 @@ export function AdminAccessPanel({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => void fetchData()}
+                  onClick={() => void fetchData(selectedApp)}
                   disabled={loading || pendingAction}
                   className="yakala-secondary-action inline-flex items-center justify-center rounded-sm border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] transition hover:scale-[1.02] disabled:opacity-60"
                 >
@@ -260,6 +316,68 @@ export function AdminAccessPanel({
                   {t.logout}
                 </button>
               </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm">
+                  <span className="text-[var(--color-subtle)]">{t.appLabel}</span>
+                  <select
+                    value={selectedApp}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      setSelectedApp(next);
+                      void fetchData(next);
+                    }}
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-4 py-3 text-[var(--color-control-text)] outline-none"
+                  >
+                    {(data.supportedApps.length > 0 ? data.supportedApps : [selectedApp]).map((app) => (
+                      <option key={app} value={app}>
+                        {appLabel(app)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="grid gap-2 text-sm">
+                  <span className="text-[var(--color-subtle)]">{t.searchLabel}</span>
+                  <input
+                    type="text"
+                    value={searchEmail}
+                    onChange={(event) => setSearchEmail(event.target.value)}
+                    placeholder={t.searchPlaceholder}
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-4 py-3 text-[var(--color-control-text)] outline-none"
+                  />
+                </label>
+              </div>
+
+              <article className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+                <h2 className="text-sm uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.quickGrantTitle}</h2>
+                <p className="mt-2 text-xs text-[var(--color-muted)]">{t.quickGrantHint}</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                  <input
+                    type="email"
+                    value={manualEmail}
+                    onChange={(event) => setManualEmail(event.target.value)}
+                    placeholder={t.quickGrantEmailLabel}
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-control-bg)] px-4 py-3 text-[var(--color-control-text)] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => updateAccess({ email: manualEmail, action: "approve" })}
+                    disabled={pendingAction || manualEmail.trim().length === 0}
+                    className="yakala-primary-action inline-flex items-center justify-center rounded-sm px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] transition hover:scale-[1.02] disabled:opacity-60"
+                  >
+                    {t.quickGrantApprove}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateAccess({ email: manualEmail, action: "revoke" })}
+                    disabled={pendingAction || manualEmail.trim().length === 0}
+                    className="yakala-secondary-action inline-flex items-center justify-center rounded-sm border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] transition hover:scale-[1.02] disabled:opacity-60"
+                  >
+                    {t.quickGrantRevoke}
+                  </button>
+                </div>
+              </article>
 
               <article className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
                 <h2 className="text-sm uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.recent}</h2>
@@ -284,10 +402,10 @@ export function AdminAccessPanel({
                 <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
                   <h2 className="text-sm uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.pending}</h2>
                   <div className="mt-4 space-y-3">
-                    {data.pending.length === 0 ? (
+                    {filteredPending.length === 0 ? (
                       <p className="text-sm text-[var(--color-muted)]">{t.emptyPending}</p>
                     ) : (
-                      data.pending.map((user) => (
+                      filteredPending.map((user) => (
                         <div key={user.id} className="rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-sm font-medium">{user.email ?? user.id}</p>
                           <p className="mt-1 text-xs text-[var(--color-subtle)]">{formatDate(user.createdAt)}</p>
@@ -297,7 +415,7 @@ export function AdminAccessPanel({
                           </p>
                           <button
                             type="button"
-                            onClick={() => updateAccess(user.id, "approve")}
+                            onClick={() => updateAccess({ userId: user.id, action: "approve" })}
                             disabled={pendingAction}
                             className="yakala-primary-action mt-3 inline-flex items-center justify-center rounded-sm px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] transition hover:scale-[1.02] disabled:opacity-60"
                           >
@@ -312,10 +430,10 @@ export function AdminAccessPanel({
                 <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
                   <h2 className="text-sm uppercase tracking-[0.2em] text-[var(--color-subtle)]">{t.approved}</h2>
                   <div className="mt-4 space-y-3">
-                    {data.approved.length === 0 ? (
+                    {filteredApproved.length === 0 ? (
                       <p className="text-sm text-[var(--color-muted)]">{t.emptyApproved}</p>
                     ) : (
-                      data.approved.map((user) => (
+                      filteredApproved.map((user) => (
                         <div key={user.id} className="rounded-xl border border-[var(--color-border)] p-3">
                           <p className="text-sm font-medium">{user.email ?? user.id}</p>
                           <p className="mt-1 text-xs text-[var(--color-subtle)]">{formatDate(user.createdAt)}</p>
@@ -325,7 +443,7 @@ export function AdminAccessPanel({
                           </p>
                           <button
                             type="button"
-                            onClick={() => updateAccess(user.id, "revoke")}
+                            onClick={() => updateAccess({ userId: user.id, action: "revoke" })}
                             disabled={pendingAction}
                             className="yakala-secondary-action mt-3 inline-flex items-center justify-center rounded-sm border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] transition hover:scale-[1.02] disabled:opacity-60"
                           >

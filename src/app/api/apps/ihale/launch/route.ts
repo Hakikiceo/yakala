@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   }
 
   const hasIhaleAccess =
-    profile.appAccess.includes("ihaleradar") || profile.appAccess.length > 0;
+    profile.appAccess.includes("ihaleradar");
 
   if (!hasIhaleAccess || !profile.email) {
     const noAccessUrl = new URL("/ihale/no-access", request.url);

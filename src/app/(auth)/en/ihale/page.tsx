@@ -21,9 +21,15 @@ export default async function IhaleLandingPageEn() {
 
   if (centralToken) {
     const profile = await resolveUserAccessProfileByToken(centralToken);
-    if (profile.ok && (profile.appAccess.includes("ihaleradar") || profile.appAccess.length > 0)) {
+    if (!profile.ok) {
+      redirect("/en/login?app=ihaleradar");
+    }
+
+    if (profile.appAccess.includes("ihaleradar")) {
       redirect("/en/ihale/app");
     }
+
+    redirect("/en/ihale/no-access");
   }
 
   const origin = await getRequestOrigin();
