@@ -3,6 +3,11 @@ type SupabaseConfig = {
   anonKey: string;
 };
 
+type SupabaseAdminConfig = {
+  url: string;
+  serviceRoleKey: string;
+};
+
 export type AppAccessResult =
   | { ok: true; userId: string; email: string | null; hasAccess: boolean }
   | { ok: false; status: number; message: string };
@@ -22,6 +27,20 @@ function getSupabaseConfig(): SupabaseConfig | null {
   return {
     url: url.replace(/\/$/, ""),
     anonKey,
+  };
+}
+
+function getSupabaseAdminConfig(): SupabaseAdminConfig | null {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    return null;
+  }
+
+  return {
+    url: url.replace(/\/$/, ""),
+    serviceRoleKey,
   };
 }
 
@@ -99,6 +118,42 @@ async function getSupabaseUserByToken(config: SupabaseConfig, token: string) {
   };
 }
 
+async function getAdminUserMetadata(userId: string): Promise<SupabaseUserMetadata | null> {
+  const adminConfig = getSupabaseAdminConfig();
+  if (!adminConfig) return null;
+
+  try {
+    const response = await fetch(`${adminConfig.url}/auth/v1/admin/users/${userId}`, {
+      method: "GET",
+      headers: {
+        apikey: adminConfig.serviceRoleKey,
+        Authorization: `Bearer ${adminConfig.serviceRoleKey}`,
+      },
+      cache: "no-store",
+    });
+
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!response.ok || !payload || typeof payload !== "object") {
+      return null;
+    }
+
+    const root = payload as Record<string, unknown>;
+    const user =
+      root.user && typeof root.user === "object"
+        ? (root.user as Record<string, unknown>)
+        : (payload as Record<string, unknown>);
+
+    const metadata =
+      user.user_metadata && typeof user.user_metadata === "object"
+        ? (user.user_metadata as SupabaseUserMetadata)
+        : null;
+
+    return metadata;
+  } catch {
+    return null;
+  }
+}
+
 function hasAppAccessFromMetadata(metadata: SupabaseUserMetadata, appKey: string) {
   const raw = metadata.app_access;
 
@@ -162,11 +217,14 @@ export async function resolveUserAccessByToken(token: string, appKey: string): P
     return userResult;
   }
 
+  const adminMetadata = await getAdminUserMetadata(userResult.userId);
+  const effectiveMetadata = adminMetadata ?? userResult.metadata;
+
   return {
     ok: true,
     userId: userResult.userId,
     email: userResult.email,
-    hasAccess: hasAppAccessFromMetadata(userResult.metadata, appKey),
+    hasAccess: hasAppAccessFromMetadata(effectiveMetadata, appKey),
   };
 }
 
@@ -189,10 +247,13 @@ export async function resolveUserAccessProfileByToken(
     return userResult;
   }
 
+  const adminMetadata = await getAdminUserMetadata(userResult.userId);
+  const effectiveMetadata = adminMetadata ?? userResult.metadata;
+
   return {
     ok: true,
     userId: userResult.userId,
     email: userResult.email,
-    appAccess: getAppAccessListFromMetadata(userResult.metadata),
+    appAccess: getAppAccessListFromMetadata(effectiveMetadata),
   };
 }
