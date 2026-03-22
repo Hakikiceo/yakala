@@ -10,6 +10,11 @@ export const metadata: Metadata = buildStaticPageMetadata({
   description: "Ihale Radar urunune erisim icin yetki gereklidir.",
 });
 
-export default function IhaleNoAccessPage() {
-  return <IhaleNoAccess locale="tr" />;
+export default async function IhaleNoAccessPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ reason?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  return <IhaleNoAccess locale="tr" reason={params.reason ?? null} />;
 }

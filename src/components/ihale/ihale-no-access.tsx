@@ -4,6 +4,7 @@ import type { Locale } from "@/types/i18n";
 
 type IhaleNoAccessProps = {
   locale: Locale;
+  reason?: string | null;
 };
 
 const content = {
@@ -23,9 +24,22 @@ const content = {
   },
 } as const;
 
-export function IhaleNoAccess({ locale }: IhaleNoAccessProps) {
+export function IhaleNoAccess({ locale, reason }: IhaleNoAccessProps) {
   const t = content[locale];
   const backHref = locale === "en" ? "/en/ihale" : "/ihale";
+  const reasonText = (reason: string | null | undefined) => {
+    if (!reason) return null;
+    const mapTr: Record<string, string> = {
+      NO_APP_ACCESS: "Kullanici metadata'sinda ihaleradar yetkisi yok.",
+      MISSING_EMAIL: "Merkezi oturumda e-posta bilgisi bulunamadi.",
+      MISSING_HANDOFF_SECRET: "Yakala ortaminda CENTRAL_TO_IHALE_HANDOFF_SECRET eksik.",
+      HANDOFF_FETCH_FAILED: "Ihale API handoff endpointine baglanilamadi (IHALERADAR_API_URL kontrol edin).",
+    };
+    if (locale === "tr") {
+      return mapTr[reason] ?? `Handoff/erişim hatasi: ${reason}`;
+    }
+    return `Access handoff issue: ${reason}`;
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -35,6 +49,9 @@ export function IhaleNoAccess({ locale }: IhaleNoAccessProps) {
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-subtle)]">{t.badge}</p>
           <h1 className="mt-4 text-4xl font-light tracking-[-0.05em] md:text-6xl">{t.title}</h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-[var(--color-muted)]">{t.description}</p>
+          {reasonText(reason) ? (
+            <p className="mt-3 text-xs text-amber-300">Detay: {reasonText(reason)}</p>
+          ) : null}
 
           <div className="mt-10 border-t border-[var(--color-border)] pt-8">
             <Link
